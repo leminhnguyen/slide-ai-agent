@@ -1,0 +1,54 @@
+services:
+  app_be:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: ./be/.env
+    volumes:
+      - ./be:/app
+    depends_on:
+      app_mongo:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+
+  app_fe:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    ports:
+      - "8999:80"
+    depends_on:
+      - app_be
+    restart: unless-stopped
+
+  app_mongo:
+    image: mongo:7
+    ports:
+      - "27077:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6337:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  qdrant_data:

@@ -1,0 +1,16 @@
+- generic [ref=e2]:
+  - img [ref=e3]:
+    - generic [ref=e5]:
+      - heading "Welcome to Slide AI Agent" [level=1] [ref=e6]
+      - heading "Your AI-powered presentation builder" [level=2] [ref=e7]
+      - text: "1"
+  - img: "2"
+  - img: "3"
+  - img: "4"
+  - generic [ref=e8]:
+    - button "Previous slide" [disabled] [ref=e9]
+    - generic: Page 1 of 4
+    - button "Next slide" [ref=e10] [cursor=pointer]
+    - button "Toggle fullscreen" [ref=e11] [cursor=pointer]
+    - button "Toggle overview view" [ref=e12] [cursor=pointer]
+    - button "Open presenter view" [ref=e13] [cursor=pointer]

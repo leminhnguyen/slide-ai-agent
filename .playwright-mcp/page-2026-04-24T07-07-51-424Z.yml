@@ -1,0 +1,167 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e10]: Slide AI
+    - button "New Presentation" [ref=e13] [cursor=pointer]:
+      - generic [ref=e14]: New Presentation
+      - img [ref=e15]
+    - button "Guide" [ref=e19] [cursor=pointer]:
+      - img [ref=e20]
+      - generic [ref=e23]: Guide
+    - button "New" [ref=e24] [cursor=pointer]:
+      - img [ref=e25]
+      - generic [ref=e26]: New
+    - button "Export" [ref=e28] [cursor=pointer]:
+      - img [ref=e29]
+      - generic [ref=e32]: Export
+      - img [ref=e33]
+  - generic [ref=e36]:
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - button "Chat" [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+          - text: Chat
+        - button "Sources" [active] [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - text: Sources
+      - generic [ref=e259]:
+        - generic [ref=e260] [cursor=pointer]:
+          - button "Choose File" [ref=e261]
+          - generic [ref=e262]:
+            - img [ref=e263]
+            - paragraph [ref=e266]: Drag & drop files or click to upload
+            - paragraph [ref=e267]: PDF, DOCX, TXT, MD · max 20 MB
+        - generic [ref=e269]:
+          - img [ref=e270]
+          - paragraph [ref=e273]: No documents uploaded yet.
+          - paragraph [ref=e274]: Upload files to give the AI knowledge sources.
+    - generic [ref=e66]:
+      - button "Collapse panel" [ref=e67] [cursor=pointer]:
+        - img [ref=e68]
+      - generic "Drag to resize panels" [ref=e71]
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]: Outline
+        - generic [ref=e77]: Marp Markdown
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - button "Bold" [ref=e81] [cursor=pointer]:
+            - img [ref=e82]
+          - button "Italic" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+          - button "H1" [ref=e87] [cursor=pointer]:
+            - img [ref=e88]
+          - button "H2" [ref=e90] [cursor=pointer]:
+            - img [ref=e91]
+          - button "H3" [ref=e93] [cursor=pointer]:
+            - img [ref=e94]
+          - button "Slide separator" [ref=e97] [cursor=pointer]:
+            - img [ref=e98]
+          - button "Code block" [ref=e99] [cursor=pointer]:
+            - img [ref=e100]
+          - generic [ref=e104]:
+            - generic [ref=e105]: Drag divider to resize. Auto-render after save.
+            - switch "Auto-save on" [checked] [ref=e106] [cursor=pointer]: Auto-save on
+            - generic [ref=e110]: Auto-save enabled
+        - generic [ref=e114]:
+          - generic [ref=e275]:
+            - generic [ref=e276]: "1"
+            - generic [ref=e277]: "2"
+            - generic [ref=e278]: "3"
+            - generic [ref=e279]: "4"
+            - generic [ref=e280]: "5"
+            - generic [ref=e281]: "6"
+            - generic [ref=e282]: "7"
+            - generic [ref=e283]: "8"
+            - generic [ref=e284]: "9"
+            - generic [ref=e285]: "10"
+            - generic [ref=e286]: "11"
+            - generic [ref=e287]: "12"
+            - generic [ref=e288]: "13"
+            - generic [ref=e289]: "14"
+            - generic [ref=e290]: "15"
+            - generic [ref=e291]: "16"
+            - generic [ref=e292]: "17"
+            - generic [ref=e293]: "18"
+            - generic [ref=e294]: "19"
+            - generic [ref=e295]: "20"
+            - generic [ref=e296]: "21"
+            - generic [ref=e297]: "22"
+            - generic [ref=e298]: "23"
+            - generic [ref=e299]: "24"
+            - generic [ref=e300]: "25"
+            - generic [ref=e301]: "26"
+            - generic [ref=e302]: "27"
+            - generic [ref=e303]: "28"
+            - generic [ref=e304]: "29"
+            - generic [ref=e305]: "30"
+            - generic [ref=e306]: "31"
+            - generic [ref=e307]: "32"
+            - generic [ref=e308]: "33"
+            - generic [ref=e309]: "34"
+            - generic [ref=e310]: "35"
+            - generic [ref=e311]: "36"
+          - textbox [ref=e153]:
+            - generic [ref=e154]: "---"
+            - generic [ref=e155]: "marp: true"
+            - generic [ref=e156]: "theme: default"
+            - generic [ref=e157]: "paginate: true"
+            - generic [ref=e158]: "backgroundColor: '#ffffff'"
+            - generic [ref=e159]: "style: |"
+            - generic [ref=e160]: "section {"
+            - generic [ref=e161]: "font-family: 'Segoe UI', sans-serif;"
+            - generic [ref=e162]: "color: #1e1b4b;"
+            - generic [ref=e163]: "}"
+            - generic [ref=e164]: "h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; }"
+            - generic [ref=e165]: "h2 { color: #6d28d9; }"
+            - generic [ref=e166]: "strong { color: #7c3aed; }"
+            - generic [ref=e167]: "---"
+            - generic [ref=e169]: "# Welcome to Slide AI Agent"
+            - generic [ref=e170]: "## Your AI-powered presentation builder"
+            - generic [ref=e172]: "---"
+            - generic [ref=e174]: "# Getting Started"
+            - generic [ref=e176]: "- Ask the AI assistant to create a presentation"
+            - generic [ref=e177]: "- Upload documents as knowledge sources"
+            - generic [ref=e178]: "- Edit the markdown outline directly"
+            - generic [ref=e179]: "- Preview slides in real time"
+            - generic [ref=e181]: "---"
+            - generic [ref=e183]: "# How It Works"
+            - generic [ref=e185]: 1. **Describe** your presentation topic
+            - generic [ref=e186]: 2. **Let AI** generate a structured outline
+            - generic [ref=e187]: 3. **Edit** the markdown to fine-tune content
+            - generic [ref=e188]: 4. **Export** as PDF, PPTX, HTML, or Markdown
+    - generic "Drag to resize panels" [ref=e192]
+    - generic [ref=e196]:
+      - generic [ref=e197]:
+        - generic [ref=e198]:
+          - generic [ref=e199]: Preview
+          - generic [ref=e245]: 1 / 4
+        - button "Refresh preview" [ref=e200] [cursor=pointer]:
+          - img [ref=e201]
+      - iframe [ref=e207]:
+        - generic [ref=f6e2]:
+          - img [ref=f6e3]:
+            - generic [ref=f6e5]:
+              - heading "Welcome to Slide AI Agent" [level=1] [ref=f6e6]
+              - heading "Your AI-powered presentation builder" [level=2] [ref=f6e7]
+              - text: "1"
+          - img: "2"
+          - img: "3"
+          - img: "4"
+          - generic:
+            - button [disabled]: Previous slide
+            - button: Next slide
+            - button: Toggle fullscreen
+            - button: Toggle overview view
+            - button: Open presenter view
+      - generic [ref=e246]:
+        - button [disabled] [ref=e247]:
+          - img [ref=e248]
+        - generic [ref=e250]:
+          - button [ref=e251] [cursor=pointer]
+          - button [ref=e252] [cursor=pointer]
+          - button [ref=e253] [cursor=pointer]
+          - button [ref=e254] [cursor=pointer]
+        - button [ref=e255] [cursor=pointer]:
+          - img [ref=e256]

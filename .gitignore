@@ -1,0 +1,49 @@
+# ── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.log
+
+# ── Node / Frontend ──────────────────────────────────────────────────
+fe/node_modules/
+fe/dist/
+fe/.vite/
+fe/.env.local
+
+# ── Environment & secrets ────────────────────────────────────────────
+.env
+be/.env
+*.env
+!*.env.example
+
+# ── Docker volumes (local dev mounts) ────────────────────────────────
+mongo_data/
+qdrant_data/
+
+# ── IDE & OS ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Misc ─────────────────────────────────────────────────────────────
+*.tmp
+*.bak
