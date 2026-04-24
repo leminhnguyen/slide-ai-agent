@@ -31,6 +31,8 @@ const violetTheme = EditorView.theme({
 interface OutlineEditorProps {
   onSaved?: (md: string) => void
   onActiveSlideChange?: (slideNumber: number) => void
+  /** Bump this to force the editor to remount and pick up external markdown changes. */
+  externalRefreshKey?: number
 }
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
@@ -67,7 +69,7 @@ function getSlideNumberForPosition(markdownContent: string, position: number) {
   return slideNumber
 }
 
-export default function OutlineEditor({ onSaved, onActiveSlideChange }: OutlineEditorProps) {
+export default function OutlineEditor({ onSaved, onActiveSlideChange, externalRefreshKey = 0 }: OutlineEditorProps) {
   const { session, setSession, updateMarkdown } = useAppStore()
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draftMarkdownRef = useRef(session?.markdown ?? '')
@@ -273,6 +275,7 @@ export default function OutlineEditor({ onSaved, onActiveSlideChange }: OutlineE
       {/* Editor */}
       <div className="flex-1 overflow-hidden">
         <CodeMirror
+          key={`${session?.id ?? 'none'}-${externalRefreshKey}`}
           value={session?.markdown ?? ''}
           height="100%"
           extensions={[markdown(), violetTheme, cursorSlideSync]}

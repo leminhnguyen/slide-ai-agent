@@ -332,6 +332,7 @@ export default function Home() {
               <OutlineEditor
                 onSaved={handleOutlineSaved}
                 onActiveSlideChange={setActiveSlide}
+                externalRefreshKey={previewKey}
               />
             </div>
           </div>

@@ -63,6 +63,30 @@ async def stream_agent_response(
         tagged_document_ids=tagged_document_ids or [],
     )
 
+    # Look up filenames for tagged documents so we can hint the agent about
+    # which file(s) the user is referring to. The message itself may still
+    # contain "@filename" but this ensures a structured hint reaches the agent
+    # even if the user just writes "what's inside this file?".
+    if tagged_document_ids:
+        try:
+            from bson import ObjectId
+            from src.libs.database import get_db
+            db = get_db()
+            cursor = db.rag_documents.find(
+                {"_id": {"$in": [ObjectId(x) for x in tagged_document_ids]}}
+            )
+            names = [d.get("filename", "") async for d in cursor]
+            if names:
+                hint = (
+                    "[System note: the user has tagged the following uploaded "
+                    f"file(s) for this turn: {', '.join(names)}. Call "
+                    "search_documents (pre-scoped to these files) before "
+                    "answering questions about their content.]\n\n"
+                )
+                user_message = hint + user_message
+        except Exception as e:
+            logger.warning(f"Could not resolve tagged document names: {e}")
+
     config = {
         "configurable": {
             "thread_id": session_id,
@@ -88,12 +112,18 @@ async def stream_agent_response(
             # Detect tool calls that modify slides
             elif kind == "on_tool_end":
                 tool_name = event.get("name", "")
-                if tool_name in ("update_outline", "add_slide", "delete_slide"):
+                if tool_name in (
+                    "update_outline",
+                    "add_slide",
+                    "delete_slide",
+                    "edit_slide",
+                    "add_image_to_slide",
+                ):
                     slide_updated = True
 
     except Exception as e:
         logger.error(f"Agent stream error: {e}")
-        yield f"\n\n[Error: {e}]"
+        yield f"[Error: {e}]"
 
     # Final metadata line (always last)
-    yield f"\n\n__META__:{{\"slide_updated\":{str(slide_updated).lower()}}}"
+    yield f"__META__:{{\"slide_updated\":{str(slide_updated).lower()}}}"

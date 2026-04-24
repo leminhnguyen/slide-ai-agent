@@ -29,33 +29,49 @@ export async function streamChat(
 
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
-  let fullText = ''
+  let buffer = ''
   let slideUpdated = false
+
+  // Parse a complete SSE event (one or more "data:" lines terminated by a blank line).
+  // Per the SSE spec, multiple "data:" lines inside a single event are joined with '\n'.
+  const handleEvent = (eventText: string) => {
+    const dataLines: string[] = []
+    for (const line of eventText.split('\n')) {
+      if (line.startsWith('data: ')) dataLines.push(line.slice(6))
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5))
+    }
+    if (dataLines.length === 0) return
+    const data = dataLines.join('\n')
+    const normalized = data.trimStart()
+
+    if (normalized.startsWith('__META__:') || normalized.startsWith('META:')) {
+      try {
+        const prefixLength = normalized.startsWith('__META__:') ? 9 : 5
+        const meta = JSON.parse(normalized.slice(prefixLength))
+        slideUpdated = meta.slide_updated === true
+      } catch (_) {}
+      return
+    }
+
+    if (!data.trim()) return
+    onChunk(data)
+  }
 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
 
-    const raw = decoder.decode(value, { stream: true })
-    // Parse SSE lines
-    const lines = raw.split('\n')
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.slice(6)
-        fullText += data + '\n'
-
-        // Detect metadata line
-        if (data.startsWith('__META__:')) {
-          try {
-            const meta = JSON.parse(data.slice(9))
-            slideUpdated = meta.slide_updated === true
-          } catch (_) {}
-        } else {
-          onChunk(data)
-        }
-      }
+    buffer += decoder.decode(value, { stream: true })
+    // Events are separated by a blank line (\n\n)
+    let sep: number
+    while ((sep = buffer.indexOf('\n\n')) !== -1) {
+      const eventText = buffer.slice(0, sep)
+      buffer = buffer.slice(sep + 2)
+      handleEvent(eventText)
     }
   }
+  // Flush any trailing event without a final blank line
+  if (buffer.trim()) handleEvent(buffer)
 
   return { slide_updated: slideUpdated }
 }

@@ -8,7 +8,7 @@
 
 | Feature | Description |
 |---------|-------------|
-| **AI Agent** | Chat with a LangGraph ReAct agent (GPT-4o) to generate or edit slides in natural language |
+| **AI Agent** | Chat with a LangGraph ReAct agent (GPT-5.2) to generate or edit slides in natural language |
 | **RAG Sources** | Upload PDF, DOCX, TXT or MD files — the agent searches them when building content |
 | **Live Preview** | Rendered Marp HTML preview in a sandboxed iframe, auto-refreshes on save |
 | **Outline Editor** | CodeMirror 6 editor with markdown toolbar (Bold, Italic, H1–H3, separator, code) |
@@ -25,7 +25,7 @@
 
 ```
 Browser (React + Vite)
-  ├── Chat panel    ──SSE──►  FastAPI  ──►  LangGraph ReAct Agent (GPT-4o)
+  ├── Chat panel    ──SSE──►  FastAPI  ──►  LangGraph ReAct Agent (GPT-5.2)
   │                                              └── tools: get/update outline,
   │                                                          add/delete slide, RAG search
   ├── Outline editor ──REST──►  Slide Session API  ──►  MongoDB
@@ -34,7 +34,7 @@ Browser (React + Vite)
 RAG pipeline:  upload ──► PyMuPDF / python-docx ──► OpenAI embeddings ──► Qdrant
 ```
 
-**Stack:** FastAPI · LangGraph 0.3 · LangChain · OpenAI GPT-4o · Qdrant · MongoDB · marp-cli · React 18 · TypeScript · Vite 5 · Tailwind CSS · CodeMirror 6 · Docker Compose
+**Stack:** FastAPI · LangGraph 0.3 · LangChain · OpenAI GPT-5.2 · Qdrant · MongoDB · marp-cli · React 18 · TypeScript · Vite 5 · Tailwind CSS · CodeMirror 6 · Docker Compose
 
 ---
 
@@ -121,7 +121,7 @@ MIT
 
 | Feature | Description |
 |---------|-------------|
-| **AI Agent chat** | LangGraph ReAct agent (GPT-4o) creates and edits slides via natural language |
+| **AI Agent chat** | LangGraph ReAct agent (GPT-5.2) creates and edits slides via natural language |
 | **Marp rendering** | Live iframe preview of Marp-flavoured markdown; export as HTML / PDF / PPTX / MD |
 | **RAG sources** | Upload PDF, DOCX, TXT or MD files; agent can search them when building content |
 | **Outline editor** | CodeMirror 6 with markdown toolbar and 1-second auto-save |
@@ -194,7 +194,7 @@ The HTML export format can be used directly for presentation in a browser, with 
 
 | Layer | Technology |
 |-------|-----------|
-| LLM | OpenAI GPT-4o + text-embedding-3-small |
+| LLM | OpenAI GPT-5.2 + text-embedding-3-small |
 | Agent | LangGraph 0.3 ReAct, `langgraph-checkpoint-mongodb` |
 | Backend | FastAPI 0.115, Python 3.12, Motor (async MongoDB) |
 | Vector DB | Qdrant (per-session collections) |
@@ -251,7 +251,7 @@ docker compose down -v       # remove volumes (wipe DB)
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | — | **Required.** OpenAI secret key |
-| `OPENAI_MODEL` | `gpt-4o` | Chat model |
+| `OPENAI_MODEL` | `gpt-5.2` | Chat model |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
 | `MONGODB_URI` | `mongodb://root:example@app_mongo:27017/?authSource=admin` | MongoDB connection string |
 | `MONGODB_DB` | `slide_agent` | Database name |

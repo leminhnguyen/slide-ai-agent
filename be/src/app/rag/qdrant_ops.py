@@ -101,9 +101,9 @@ async def search_with_filter(
             ]
         )
 
-    results = await client.search(
+    results = await client.query_points(
         collection_name=collection,
-        query_vector=query_vec,
+        query=query_vec,
         limit=top_k,
         query_filter=query_filter,
     )
@@ -114,7 +114,7 @@ async def search_with_filter(
             "score": r.score,
             "doc_id": r.payload["doc_id"],
         }
-        for r in results
+        for r in results.points
     ]
 
 

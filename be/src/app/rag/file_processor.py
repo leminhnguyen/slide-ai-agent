@@ -24,11 +24,17 @@ def parse_file(filename: str, content: bytes) -> List[str]:
 
 def _parse_pdf(content: bytes) -> List[str]:
     chunks: List[str] = []
-    with fitz.open(stream=content, filetype="pdf") as doc:
-        for page in doc:
-            text = page.get_text().strip()
-            if text:
-                chunks.append(text)
+    try:
+        with fitz.open(stream=content, filetype="pdf") as doc:
+            for page in doc:
+                text = page.get_text().strip()
+                if text:
+                    chunks.append(text)
+    except Exception as e:
+        logger.warning(f"PDF parse failed: {e}")
+        raise ValueError(
+            "Failed to read PDF. The file may be corrupted, password-protected, or image-only."
+        ) from e
     logger.info(f"PDF parsed: {len(chunks)} pages with text")
     return chunks
 

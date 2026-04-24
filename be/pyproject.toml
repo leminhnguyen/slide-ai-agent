@@ -31,6 +31,9 @@ dependencies = [
     "langdetect>=1.0.9",
     # Sentence splitter for RAG chunking
     "nltk>=3.9.0",
+    # Chart generation & image tools
+    "matplotlib>=3.9.0",
+    "Pillow>=10.3.0",
 ]
 
 [build-system]

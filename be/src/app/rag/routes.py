@@ -1,9 +1,11 @@
 """RAG document management routes."""
 from datetime import datetime, timezone
+from pathlib import Path
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
+from loguru import logger
 
 from src.app.rag.file_processor import parse_file
 from src.app.rag.qdrant_ops import embed_and_store, delete_doc_vectors
@@ -29,7 +31,6 @@ async def upload_document(
     file: UploadFile = File(...),
 ):
     # Validate extension
-    from pathlib import Path
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -63,7 +64,18 @@ async def upload_document(
     doc_id = str(result.inserted_id)
 
     # Embed and store in Qdrant
-    await embed_and_store(session_id, doc_id, file.filename or "", chunks)
+    try:
+        await embed_and_store(session_id, doc_id, file.filename or "", chunks)
+    except Exception as e:
+        logger.exception(f"Failed to embed/store uploaded document {doc_id}: {e}")
+        await db.rag_documents.delete_one({"_id": result.inserted_id})
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "File was parsed but indexing failed. Check OPENAI_API_KEY, embedding model, "
+                "and Qdrant connectivity."
+            ),
+        ) from e
 
     return DocumentOut(
         id=doc_id,

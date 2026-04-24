@@ -6,6 +6,7 @@ import { useAppStore } from '../../store/useAppStore'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import type { ChatMessage, Document } from '../../types'
+import MarkdownMessage from '../../components/MarkdownMessage'
 
 interface ChatPanelProps {
   onSlideUpdated: () => void
@@ -121,8 +122,10 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
   const sendMessage = async () => {
     const text = input.trim()
     if (!text || !session || streaming) return
-    const cleanedMessage = stripMentionTokens(text)
-    const messageForAgent = cleanedMessage || text
+    // Keep the @filename mentions in the message so the agent knows which
+    // file the user is referring to. The backend prompt instructs it to call
+    // search_documents whenever tagged documents are present.
+    const messageForAgent = text
 
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: text }])
@@ -151,10 +154,10 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
       )
 
       if (slide_updated) {
-        onSlideUpdated()
-        // Refresh the session markdown from backend
+        // Refresh the session markdown from backend before reloading other panels.
         const updated = await slideApi.get(session.id)
         useAppStore.getState().setSession(updated)
+        onSlideUpdated()
       }
     } catch (e) {
       toast.error('Chat error. Please try again.')
@@ -209,7 +212,7 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
             {/* Bubble */}
             <div
               className={clsx(
-                'max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed',
+                'min-w-0 max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed [overflow-wrap:anywhere]',
                 msg.role === 'user'
                   ? 'bg-primary-600 text-white rounded-tr-sm'
                   : 'bg-primary-50 text-gray-800 border border-primary-100 rounded-tl-sm',
@@ -217,7 +220,11 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
               )}
             >
               {msg.content ? (
-                <span className="whitespace-pre-wrap">{msg.content}</span>
+                msg.role === 'assistant' ? (
+                  <MarkdownMessage content={msg.content} />
+                ) : (
+                  <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.content}</span>
+                )
               ) : (
                 <span className="flex gap-1 items-center py-0.5">
                   <span className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-bounce [animation-delay:0ms]" />

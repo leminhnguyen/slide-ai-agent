@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from bson import ObjectId
 
 
-DEFAULT_MARKDOWN = """---
+DEFAULT_THEME_FRONTMATTER = """---
 marp: true
 theme: default
 paginate: true
@@ -18,7 +18,10 @@ style: |
   h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; }
   h2 { color: #6d28d9; }
   strong { color: #7c3aed; }
----
+---"""
+
+
+DEFAULT_MARKDOWN = f"""{DEFAULT_THEME_FRONTMATTER}
 
 # Welcome to Slide AI Agent
 ## Your AI-powered presentation builder

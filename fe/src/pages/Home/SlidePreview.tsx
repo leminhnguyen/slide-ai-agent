@@ -72,7 +72,7 @@ export default function SlidePreview({ activeSlide = 1, refreshKey }: SlidePrevi
 
   useEffect(() => {
     loadPreview()
-  }, [session?.id, refreshKey])
+  }, [loadPreview, session?.updated_at, refreshKey])
 
   // Render HTML directly in srcDoc so Marp doesn't trip over blob: history APIs.
   useEffect(() => {

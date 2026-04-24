@@ -1,8 +1,10 @@
 """FastAPI application entry point."""
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from src.app.chat.routes import router as chat_router
@@ -41,6 +43,11 @@ app.add_middleware(
 app.include_router(slide_router)
 app.include_router(chat_router)
 app.include_router(rag_router)
+
+# Serve agent-generated assets (charts, images) so the Marp preview can load them
+_uploads_dir = Path("uploads")
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 
 @app.get("/health")
