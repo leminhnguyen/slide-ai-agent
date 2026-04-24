@@ -18,22 +18,6 @@
 | **Collapsible chat** | Collapse/expand the left agent panel with a single click |
 | **Session memory** | Conversation history checkpointed in MongoDB per presentation session |
 | **Slide navigation** | Click in the editor to jump the preview to that slide; prev/next arrows in preview |
-| **@file tagging** | Type `@filename` in chat to pin a specific source into agent context |
-
----
-
-## Screenshots
-
-| | |
-|:---:|:---:|
-| **Full workspace** — chat, outline editor, live preview | |
-| ![Overview](docs/screenshots/overview-workspace.png) | |
-| **Upload sources** — drag & drop PDF, DOCX, TXT, MD | **Source selection** — select files to include in agent context |
-| ![Upload resource](docs/screenshots/upload-resource.png) | ![Sources panel](docs/screenshots/sources-panel.png) |
-| **@file tagging** — pin a source directly from chat | **Export options** — HTML, PDF, PPTX, Markdown |
-| ![Chat file tagging](docs/screenshots/chat-file-tagging.png) | ![Export options](docs/screenshots/export-options.png) |
-| **Slide preview** — rendered Marp presentation | **Quick guide** — built-in help panel |
-| ![Presentation](docs/screenshots/presentation.png) | ![Guide panel](docs/screenshots/guide-panel.png) |
 
 ---
 
