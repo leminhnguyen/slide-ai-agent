@@ -1,5 +1,7 @@
 # Slide AI Agent
 
+<video src="be/assets/slide-ai-agent.mp4" controls width="100%"></video>
+
 **v1.0.0** — AI-powered presentation builder with a conversational agent, live Marp preview, and drag-to-resize workspace.
 
 ---
@@ -128,38 +130,6 @@ MIT
 | **Resizable panels** | Drag dividers to resize left/centre/right panels; collapse the agent panel entirely |
 | **Session memory** | Conversations checkpointed in MongoDB per session via `langgraph-checkpoint-mongodb` |
 
----
-
-## Screenshots
-
-### Main workspace
-
-The default workspace combines the AI assistant, markdown outline editor, and live Marp preview in a single view.
-
-![Main workspace](docs/screenshots/overview-workspace.png)
-
-### Built-in guide
-
-The in-app guide explains the main editing, saving, and layout interactions for first-time users.
-
-![Quick guide panel](docs/screenshots/guide-panel.png)
-
-### Sources and RAG upload flow
-
-Users can switch to the Sources tab to upload reference files that the agent can use as retrieval context.
-
-![Upload resources](docs/screenshots/upload-resource.png)
-
-### Export options
-
-Slides can be exported directly from the top bar as HTML, PDF, PPTX, or Markdown.
-
-![Export menu](docs/screenshots/export-options.png)
-
-### Presentation mode
-The HTML export format can be used directly for presentation in a browser, with support for slide navigation and incremental content.
-
-![Presentation](docs/screenshots/presentation.png)
 ---
 
 ## Architecture
