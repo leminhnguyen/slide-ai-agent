@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { streamChat } from '../../api/chatApi'
+import { streamChat, type ChatStreamEvent } from '../../api/chatApi'
 import { slideApi } from '../../api/slideApi'
 import { useAppStore } from '../../store/useAppStore'
 import toast from 'react-hot-toast'
@@ -73,6 +73,10 @@ function stripMentionTokens(input: string) {
     .replace(/(^|\s)@(?:"([^"]+)"|([^\s]+))/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function escapeInlineCode(value: string) {
+  return value.replace(/`/g, '\\`')
 }
 
 export default function ChatPanel({
@@ -199,6 +203,39 @@ export default function ChatPanel({
 
     try {
       let accumulated = ''
+      let webSearchQuery = ''
+      let webSearchLinks: Array<{ title?: string; url?: string }> = []
+
+      const renderAssistantContent = () => {
+        const progressParts: string[] = []
+
+        if (webSearchQuery) {
+          progressParts.push('**Web search**')
+          progressParts.push(`_Searching:_ \`${escapeInlineCode(webSearchQuery)}\``)
+        }
+
+        if (webSearchLinks.length > 0) {
+          progressParts.push('')
+          progressParts.push('_Links found:_')
+          for (const link of webSearchLinks) {
+            if (!link.url) continue
+            progressParts.push(`- [${link.title || link.url}](${link.url})`)
+          }
+        }
+
+        const progressMarkdown = progressParts.join('\n').trim()
+        return [progressMarkdown, accumulated.trim()].filter(Boolean).join('\n\n')
+      }
+
+      const syncAssistantMessage = () => {
+        const combined = renderAssistantContent()
+        setMessages(prev => {
+          const copy = [...prev]
+          copy[copy.length - 1] = { role: 'assistant', content: combined }
+          return copy
+        })
+      }
+
       const { slide_updated } = await streamChat(
         session.id,
         messageForAgent,
@@ -208,11 +245,19 @@ export default function ChatPanel({
         },
         chunk => {
           accumulated += chunk
-          setMessages(prev => {
-            const copy = [...prev]
-            copy[copy.length - 1] = { role: 'assistant', content: accumulated }
-            return copy
-          })
+          syncAssistantMessage()
+        },
+        (event: ChatStreamEvent) => {
+          if (event.type === 'web_search_started') {
+            webSearchQuery = event.data.query || webSearchQuery
+            syncAssistantMessage()
+            return
+          }
+          if (event.type === 'web_search_links') {
+            webSearchQuery = event.data.query || webSearchQuery
+            webSearchLinks = (event.data.links || []).filter((link) => Boolean(link.url))
+            syncAssistantMessage()
+          }
         },
       )
 

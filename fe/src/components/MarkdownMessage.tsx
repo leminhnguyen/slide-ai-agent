@@ -92,22 +92,24 @@ export default function MarkdownMessage({ content, onOpenAsset, onAddAssetToSlid
                   <span className="min-w-0 truncate text-xs text-gray-500">
                     {alt || src}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => onOpenAsset?.({ url: src, alt })}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                      title="View image"
+                      aria-label="View image"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md px-0 py-0 text-primary-700 transition-colors hover:bg-primary-50"
                     >
                       <Expand className="h-3.5 w-3.5" />
-                      View
                     </button>
                     <button
                       type="button"
                       onClick={() => onAddAssetToSlide?.({ url: src, alt })}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+                      title="Add to slide"
+                      aria-label="Add to slide"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-600 px-0 py-0 text-white transition-colors hover:bg-primary-700"
                     >
                       <ImagePlus className="h-3.5 w-3.5" />
-                      Add
                     </button>
                   </div>
                 </figcaption>
