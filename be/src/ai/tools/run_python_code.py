@@ -15,6 +15,7 @@ from pathlib import Path
 from textwrap import dedent
 
 from loguru import logger
+from PIL import Image
 
 # Default chart dimensions — tuned for Marp 16:9 slide
 CHART_WIDTH_IN = 7
@@ -24,6 +25,17 @@ EXEC_TIMEOUT_SECONDS = 30
 
 UPLOADS_ROOT = Path("uploads")
 CHARTS_DIR = UPLOADS_ROOT / "charts"
+
+
+def _image_is_blank(image_path: Path) -> bool:
+    """Return True when the rendered image contains no visible chart content."""
+    with Image.open(image_path) as img:
+        grayscale = img.convert("L")
+        extrema = grayscale.getextrema()
+        if not extrema:
+            return True
+        low, high = extrema
+        return low >= 250 and high >= 250
 
 
 def run_python_code(python_code: str) -> str:
@@ -63,9 +75,16 @@ def run_python_code(python_code: str) -> str:
         plt.rcParams["savefig.bbox"] = "tight"
 
         _OUT_PATH = r"{out_path}"
+        _SAVED = False
 
         def _save_and_close(*_a, **_kw):
+            global _SAVED
+            if _SAVED:
+                return
+            if not plt.get_fignums():
+                return
             plt.savefig(_OUT_PATH, dpi={CHART_DPI})
+            _SAVED = True
             plt.close("all")
 
         # Intercept plt.show so user code that ends with plt.show() still saves.
@@ -90,6 +109,10 @@ def run_python_code(python_code: str) -> str:
             text=True,
             timeout=EXEC_TIMEOUT_SECONDS,
         )
+        if proc.stdout.strip():
+            logger.info("[run_python_code] stdout:\n{}", proc.stdout.strip())
+        if proc.stderr.strip():
+            logger.info("[run_python_code] stderr:\n{}", proc.stderr.strip())
         if proc.returncode != 0:
             raise RuntimeError(
                 f"Python code failed (exit {proc.returncode}):\n"
@@ -99,6 +122,16 @@ def run_python_code(python_code: str) -> str:
             raise RuntimeError(
                 "Python code completed but no chart image was produced. "
                 "Ensure your code creates a matplotlib figure."
+            )
+        if _image_is_blank(out_path):
+            try:
+                out_path.unlink(missing_ok=True)
+            except Exception:
+                logger.warning(f"[run_python_code] could not delete blank chart: {out_path}")
+            raise RuntimeError(
+                "Python code completed but produced a blank chart image. "
+                "Ensure the code actually draws visible matplotlib content "
+                "(for example via plt.plot, plt.bar, ax.plot, or ax.bar)."
             )
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(

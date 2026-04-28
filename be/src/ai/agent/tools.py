@@ -345,7 +345,7 @@ def _local_path_from_url(url: str) -> Path:
 
 @tool
 async def run_python_code(
-    python_code: Annotated[str, "Python code using matplotlib. Will auto-save the figure; plt.show() is optional."],
+    python_code: Annotated[str, "Python code using matplotlib, numpy, and optionally pandas. Will auto-save the figure; plt.show() is optional."],
 ) -> str:
     """Generate a chart image by executing matplotlib Python code.
 
@@ -362,7 +362,7 @@ async def run_python_code(
         Use this path directly in the markdown outline as ``![caption](URL)``.
     """
     try:
-        logger.info("[tool run_python_code] executing user code")
+        logger.info("[tool run_python_code] received source code:\n{}", python_code.rstrip() or "<empty>")
         url = _run_python_code(python_code)
         return f"Chart saved. Image URL: {url}"
     except Exception as e:

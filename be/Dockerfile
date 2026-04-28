@@ -2,12 +2,18 @@ FROM python:3.12-slim
 
 # Install system deps for PyMuPDF + marp-cli (Node)
 RUN apt-get update && apt-get install -y \
+    chromium \
     curl \
+    fonts-liberation \
+    libreoffice-impress \
     nodejs \
     npm \
+    ca-certificates \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
+
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Install marp-cli globally
 RUN npm install -g @marp-team/marp-cli
