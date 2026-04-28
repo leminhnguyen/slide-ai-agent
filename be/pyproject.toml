@@ -9,7 +9,7 @@ dependencies = [
     "pydantic-settings>=2.3.0",
     # LangChain / LangGraph
     "langchain>=0.3.0",
-    "langchain-openai>=0.3.0",
+    "langchain-openai>=0.3.9",
     "langgraph>=0.3.0",
     "langgraph-checkpoint-mongodb>=0.1.0",
     # OpenAI

@@ -27,6 +27,8 @@ async def _sse_generator(
         selected_document_ids=selected_document_ids,
         tagged_document_ids=tagged_document_ids,
     ):
+        if not isinstance(chunk, str):
+            chunk = str(chunk)
         # SSE format: each data line followed by double newline
         for line in chunk.split("\n"):
             yield f"data: {line}\n"

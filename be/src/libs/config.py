@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-5.2"
     openai_embedding_model: str = "text-embedding-3-small"
+    openai_web_search_model: str = "gpt-5"
 
     # MongoDB
     mongodb_uri: str = "mongodb://root:example@app_mongo:27017/?authSource=admin"

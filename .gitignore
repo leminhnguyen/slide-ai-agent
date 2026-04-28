@@ -49,3 +49,4 @@ Thumbs.db
 *.bak
 
 .playwright-mcp/
+be/uploads

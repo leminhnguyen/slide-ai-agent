@@ -1,5 +1,5 @@
 """LangGraph agent for the slide AI assistant."""
-from typing import Optional, AsyncGenerator
+from typing import Any, Optional, AsyncGenerator
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
@@ -14,6 +14,43 @@ from src.libs.config import get_settings
 
 _agent = None
 _saver_ctx = None
+
+
+def _extract_text_fragments(value: Any) -> list[str]:
+    """Flatten LangChain/OpenAI response content into plain text fragments."""
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        return [value] if value else []
+
+    if isinstance(value, (list, tuple)):
+        parts: list[str] = []
+        for item in value:
+            parts.extend(_extract_text_fragments(item))
+        return parts
+
+    if isinstance(value, dict):
+        text = value.get("text")
+        if isinstance(text, str) and text:
+            return [text]
+
+        parts: list[str] = []
+        for key in ("content", "value", "delta"):
+            if key in value:
+                parts.extend(_extract_text_fragments(value[key]))
+        return parts
+
+    if hasattr(value, "text") and isinstance(value.text, str) and value.text:
+        return [value.text]
+
+    if hasattr(value, "model_dump"):
+        return _extract_text_fragments(value.model_dump())
+
+    if hasattr(value, "content"):
+        return _extract_text_fragments(value.content)
+
+    return []
 
 
 def get_agent():
@@ -107,7 +144,9 @@ async def stream_agent_response(
             if kind == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    yield chunk.content
+                    for text in _extract_text_fragments(chunk.content):
+                        if text:
+                            yield text
 
             # Detect tool calls that modify slides
             elif kind == "on_tool_end":

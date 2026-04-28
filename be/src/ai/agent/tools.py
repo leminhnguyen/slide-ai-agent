@@ -96,6 +96,66 @@ async def search_documents(query: str, config: RunnableConfig) -> str:
 
 
 @tool
+async def search_web(query: str) -> str:
+    """
+    Search the public web for up-to-date information and return a concise summary with sources.
+
+    Args:
+        query: The search query to look up on the public web.
+    """
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return "Error: OPENAI_API_KEY is not configured."
+
+    llm = ChatOpenAI(
+        model=settings.openai_web_search_model,
+        api_key=settings.openai_api_key,
+        use_responses_api=True,
+    )
+    llm_with_tools = llm.bind_tools([{"type": "web_search_preview"}])
+    try:
+        response = await llm_with_tools.ainvoke(
+            (
+                "Search the public web for this query and answer concisely. "
+                "Prioritize recent, factual information useful for writing slides.\n\n"
+                f"Query: {query}"
+            )
+        )
+    except Exception as e:
+        logger.exception("search_web failed")
+        return f"Error searching the web: {e}"
+
+    answer = (getattr(response, "text", None) or "").strip()
+    if not answer:
+        answer = "No relevant information found on the web."
+
+    unique_sources: list[dict] = []
+    seen_urls: set[str] = set()
+    for block in getattr(response, "content_blocks", []) or []:
+        if block.get("type") != "text":
+            continue
+        for annotation in block.get("annotations", []) or []:
+            url = annotation.get("url")
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        unique_sources.append(annotation)
+        if len(unique_sources) >= 5:
+            break
+
+    if not unique_sources:
+        return answer
+
+    source_lines = []
+    for source in unique_sources:
+        title = source.get("title") or source.get("url")
+        url = source.get("url")
+        source_lines.append(f"- [{title}]({url})")
+
+    return f"{answer}\n\nSources:\n" + "\n".join(source_lines)
+
+
+@tool
 async def add_slide(
     position: int,
     title: str,
@@ -528,6 +588,7 @@ AGENT_TOOLS = [
     get_outline,
     update_outline,
     search_documents,
+    search_web,
     add_slide,
     delete_slide,
     edit_slide,
