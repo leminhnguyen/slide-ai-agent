@@ -15,6 +15,17 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 | **Workspace controls** | Resizable panels, collapsible chat, auto-save, and slide navigation |
 | **Session memory** | Conversation and slide sessions are persisted with MongoDB |
 
+## Todo
+
+| Item | Description |
+|------|-------------|
+| **Streaming reasoning and plan** | Show the agent's reasoning summary and execution plan while generating slides |
+| **Guardrails** | Add safety, policy, and content validation before applying agent actions |
+| **Tracing** | Integrate tracing tools such as Langfuse for prompt, tool, and cost observability |
+| **Multi-agent workflow** | Add orchestration for specialized agents across research, writing, review, and editing |
+| **Model settings** | Let users switch between model types and configure their OpenAI API key in the UI |
+| **Cost estimation** | Estimate token usage and generation cost before or during slide creation |
+
 ## Installation
 
 Prerequisites:
