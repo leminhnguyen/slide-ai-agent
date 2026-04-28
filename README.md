@@ -1,6 +1,6 @@
 # Slide AI Agent
 
-<video src="be/assets/slide-ai-agent.mp4" controls width="100%"></video>
+![Slide AI Agent demo](be/assets/demo.gif)
 
 **v1.0.0** — AI-powered presentation builder with a conversational agent, live Marp preview, and drag-to-resize workspace.
 
