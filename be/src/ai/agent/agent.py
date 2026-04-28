@@ -148,6 +148,19 @@ async def stream_agent_response(
                         if text:
                             yield text
 
+            elif kind == "on_custom_event":
+                event_name = event.get("name", "")
+                data = event.get("data", {})
+                if event_name in ("web_search_started", "web_search_links"):
+                    import json
+                    yield "__EVENT__:" + json.dumps(
+                        {
+                            "type": event_name,
+                            "data": data,
+                        },
+                        ensure_ascii=False,
+                    )
+
             # Detect tool calls that modify slides
             elif kind == "on_tool_end":
                 tool_name = event.get("name", "")
