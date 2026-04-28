@@ -3,6 +3,16 @@
  * onChunk is called with each text fragment.
  * Returns { slide_updated: boolean } at the end.
  */
+export type ChatStreamEvent =
+  | {
+      type: 'web_search_started'
+      data: { query?: string }
+    }
+  | {
+      type: 'web_search_links'
+      data: { query?: string; links?: Array<{ title?: string; url?: string }> }
+    }
+
 export async function streamChat(
   sessionId: string,
   message: string,
@@ -11,6 +21,7 @@ export async function streamChat(
     taggedDocumentIds?: string[]
   },
   onChunk: (text: string) => void,
+  onEvent?: (event: ChatStreamEvent) => void,
 ): Promise<{ slide_updated: boolean }> {
   const response = await fetch('/api/chat', {
     method: 'POST',
@@ -49,6 +60,14 @@ export async function streamChat(
         const prefixLength = normalized.startsWith('__META__:') ? 9 : 5
         const meta = JSON.parse(normalized.slice(prefixLength))
         slideUpdated = meta.slide_updated === true
+      } catch (_) {}
+      return
+    }
+
+    if (normalized.startsWith('__EVENT__:')) {
+      try {
+        const payload = JSON.parse(normalized.slice(10)) as ChatStreamEvent
+        onEvent?.(payload)
       } catch (_) {}
       return
     }
