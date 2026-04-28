@@ -3,6 +3,14 @@ export interface SlideOption {
   title: string
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
 export function splitSlides(markdown: string): string[] {
   const lines = markdown.split('\n')
   let inFrontmatter = false
@@ -93,8 +101,13 @@ export function appendImageToSlide(
   }
 
   const fallbackAlt = imageUrl.split('/').pop() || 'Generated image'
-  const imageMarkdown = `\n\n![${altText?.trim() || fallbackAlt}](${imageUrl})`
-  slides[slideNumber - 1] = slides[slideNumber - 1].replace(/\s+$/, '') + imageMarkdown
+  const safeAlt = escapeHtml(altText?.trim() || fallbackAlt)
+  const imageHtml =
+    '\n\n<div style="text-align:center; margin-top: 16px;">' +
+    `<img src="${imageUrl}" alt="${safeAlt}" ` +
+    'style="display:inline-block; max-width: 100%; max-height: 260px; object-fit: contain;" />' +
+    '</div>'
+  slides[slideNumber - 1] = slides[slideNumber - 1].replace(/\s+$/, '') + imageHtml
 
   return joinSlides(slides)
 }

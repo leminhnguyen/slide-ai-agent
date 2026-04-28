@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
+from langchain_core.callbacks.manager import adispatch_custom_event
 from langchain_openai import ChatOpenAI
 from loguru import logger
 from openai import OpenAI
@@ -96,13 +97,19 @@ async def search_documents(query: str, config: RunnableConfig) -> str:
 
 
 @tool
-async def search_web(query: str) -> str:
+async def search_web(query: str, config: RunnableConfig = None) -> str:
     """
     Search the public web for up-to-date information and return a concise summary with sources.
 
     Args:
         query: The search query to look up on the public web.
     """
+    await adispatch_custom_event(
+        "web_search_started",
+        {"query": query},
+        config=config,
+    )
+
     settings = get_settings()
     if not settings.openai_api_key:
         return "Error: OPENAI_API_KEY is not configured."
@@ -136,15 +143,33 @@ async def search_web(query: str) -> str:
             continue
         for annotation in block.get("annotations", []) or []:
             url = annotation.get("url")
-        if not url or url in seen_urls:
-            continue
-        seen_urls.add(url)
-        unique_sources.append(annotation)
+            if not url or url in seen_urls:
+                continue
+            seen_urls.add(url)
+            unique_sources.append(annotation)
+            if len(unique_sources) >= 5:
+                break
         if len(unique_sources) >= 5:
             break
 
     if not unique_sources:
         return answer
+
+    await adispatch_custom_event(
+        "web_search_links",
+        {
+            "query": query,
+            "links": [
+                {
+                    "title": source.get("title") or source.get("url"),
+                    "url": source.get("url"),
+                }
+                for source in unique_sources
+                if source.get("url")
+            ],
+        },
+        config=config,
+    )
 
     source_lines = []
     for source in unique_sources:
@@ -338,6 +363,23 @@ def _local_path_from_url(url: str) -> Path:
     if url.startswith("/uploads/"):
         return UPLOADS_ROOT / url[len("/uploads/"):]
     return Path(url)
+
+
+def _build_slide_asset_html(image_url: str, alt_text: str) -> str:
+    """Return a slide-friendly HTML block for inserted assets."""
+    safe_alt = (
+        alt_text.replace("&", "&amp;")
+        .replace('"', "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    return (
+        "\n\n"
+        '<div style="text-align:center; margin-top: 16px;">'
+        f'<img src="{image_url}" alt="{safe_alt}" '
+        'style="display:inline-block; max-width: 100%; max-height: 260px; object-fit: contain;" />'
+        "</div>"
+    )
 
 
 # ── tools: chart generation & image generation ────────────────────────
@@ -573,8 +615,8 @@ async def add_image_to_slide(
         return f"Invalid slide_number {slide_number}. Valid range: 1..{len(slides)}."
 
     alt = alt_text or os.path.basename(image_url)
-    image_md = f"\n\n![{alt}]({image_url})"
-    slides[slide_number - 1] = slides[slide_number - 1].rstrip() + image_md
+    image_html = _build_slide_asset_html(image_url, alt)
+    slides[slide_number - 1] = slides[slide_number - 1].rstrip() + image_html
 
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
