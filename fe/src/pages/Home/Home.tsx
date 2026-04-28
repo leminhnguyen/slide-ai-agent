@@ -290,7 +290,11 @@ export default function Home() {
             {/* Tab content */}
             <div className="flex-1 overflow-hidden">
               <div className={clsx('h-full', leftTab !== 'chat' && 'hidden')}>
-                <ChatPanel onSlideUpdated={handleSlideUpdated} />
+                <ChatPanel
+                  onSlideUpdated={handleSlideUpdated}
+                  activeSlide={activeSlide}
+                  onSlideFocused={setActiveSlide}
+                />
               </div>
               <div className={clsx('h-full', leftTab !== 'sources' && 'hidden')}>
                 <SourcesPanel />

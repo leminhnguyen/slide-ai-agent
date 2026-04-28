@@ -1,12 +1,24 @@
 import { useState, useRef } from 'react'
 import { PresentationIcon, Plus, Download, ChevronDown, Pencil, CircleHelp } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { slideApi } from '../../api/slideApi'
+import { slideApi, type ExportFormat } from '../../api/slideApi'
 import toast from 'react-hot-toast'
 
 interface TopbarProps {
   onNewSession: () => void
 }
+
+const EXPORT_OPTIONS: Array<{
+  format: ExportFormat
+  label: string
+  extension: string
+}> = [
+  { format: 'html', label: 'HTML', extension: 'html' },
+  { format: 'pdf', label: 'PDF', extension: 'pdf' },
+  { format: 'pptx', label: 'PPTX', extension: 'pptx' },
+  { format: 'pptx-editable', label: 'PPTX Editable', extension: 'pptx' },
+  { format: 'md', label: 'Markdown', extension: 'md' },
+]
 
 export default function Topbar({ onNewSession }: TopbarProps) {
   const { session, updateTitle } = useAppStore()
@@ -14,6 +26,7 @@ export default function Topbar({ onNewSession }: TopbarProps) {
   const [titleDraft, setTitleDraft] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   const startEditTitle = () => {
@@ -33,14 +46,32 @@ export default function Topbar({ onNewSession }: TopbarProps) {
     }
   }
 
-  const handleExport = (format: 'html' | 'pdf' | 'pptx' | 'md') => {
+  const handleExport = async (format: ExportFormat) => {
     if (!session) return
     setExportOpen(false)
-    const url = slideApi.exportUrl(session.id, format)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${session.title}.${format}`
-    a.click()
+    setExportingFormat(format)
+    const option = EXPORT_OPTIONS.find((item) => item.format === format)
+
+    try {
+      const { blob, filename } = await slideApi.exportFile(
+        session.id,
+        format,
+        `${session.title}.${option?.extension || format}`,
+      )
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Export failed'
+      toast.error(message)
+    } finally {
+      setExportingFormat(null)
+    }
   }
 
   const guideSections = [
@@ -160,20 +191,25 @@ export default function Topbar({ onNewSession }: TopbarProps) {
           className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
-          <span className="hidden sm:inline">Export</span>
+          <span className="hidden sm:inline">
+            {exportingFormat
+              ? `Exporting ${EXPORT_OPTIONS.find((item) => item.format === exportingFormat)?.label || exportingFormat}...`
+              : 'Export'}
+          </span>
           <ChevronDown className="w-3 h-3" />
         </button>
         {exportOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
             <div className="absolute right-0 top-full mt-1 bg-white border border-primary-100 rounded-xl shadow-lg z-20 min-w-[140px] py-1">
-              {(['html', 'pdf', 'pptx', 'md'] as const).map(fmt => (
+              {EXPORT_OPTIONS.map((option) => (
                 <button
-                  key={fmt}
-                  onClick={() => handleExport(fmt)}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-primary-50 text-gray-700 hover:text-primary-700"
+                  key={option.format}
+                  onClick={() => handleExport(option.format)}
+                  disabled={exportingFormat !== null}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-primary-50 text-gray-700 hover:text-primary-700 disabled:opacity-50"
                 >
-                  {fmt.toUpperCase()}
+                  {option.label}
                 </button>
               ))}
             </div>
