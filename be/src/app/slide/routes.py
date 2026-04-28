@@ -12,7 +12,12 @@ from src.app.slide.models import (
     SlideSessionOut,
     SlideSessionUpdate,
 )
-from src.app.slide.marp_export import export_as_html, export_as_pdf, export_as_pptx
+from src.app.slide.marp_export import (
+    export_as_editable_pptx,
+    export_as_html,
+    export_as_pdf,
+    export_as_pptx,
+)
 from src.libs.database import get_db
 
 router = APIRouter(prefix="/api/slides", tags=["slides"])
@@ -21,6 +26,7 @@ EXPORT_MIME = {
     "html": "text/html",
     "pdf": "application/pdf",
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "pptx-editable": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "md": "text/markdown",
 }
 
@@ -81,7 +87,7 @@ async def update_session(session_id: str, body: SlideSessionUpdate):
 @router.get("/{session_id}/export")
 async def export_session(
     session_id: str,
-    format: Literal["html", "pdf", "pptx", "md"] = Query(default="html"),
+    format: Literal["html", "pdf", "pptx", "pptx-editable", "md"] = Query(default="html"),
 ):
     db = get_db()
     doc = await db.slides.find_one({"_id": ObjectId(session_id)})
@@ -103,13 +109,16 @@ async def export_session(
             data = await export_as_html(markdown)
         elif format == "pdf":
             data = await export_as_pdf(markdown)
-        else:  # pptx
+        elif format == "pptx":
             data = await export_as_pptx(markdown)
+        else:  # pptx-editable
+            data = await export_as_editable_pptx(markdown)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+    extension = "pptx" if format == "pptx-editable" else format
     return Response(
         content=data,
         media_type=EXPORT_MIME[format],
-        headers={"Content-Disposition": f'attachment; filename="{title}.{format}"'},
+        headers={"Content-Disposition": f'attachment; filename="{title}.{extension}"'},
     )

@@ -1,3 +1,4 @@
+import { Expand, ImagePlus } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -5,13 +6,15 @@ import 'highlight.js/styles/github.css'
 
 interface Props {
   content: string
+  onOpenAsset?: (asset: { url: string; alt?: string }) => void
+  onAddAssetToSlide?: (asset: { url: string; alt?: string }) => void
 }
 
 /**
  * Render chat message content as Markdown with GFM (tables, task lists,
  * strikethrough) and syntax-highlighted code blocks. Links open in a new tab.
  */
-export default function MarkdownMessage({ content }: Props) {
+export default function MarkdownMessage({ content, onOpenAsset, onAddAssetToSlide }: Props) {
   return (
     <div className="markdown-body min-w-0 text-sm leading-relaxed [overflow-wrap:anywhere]">
       <ReactMarkdown
@@ -63,9 +66,54 @@ export default function MarkdownMessage({ content }: Props) {
           ),
           th: ({ children }) => <th className="border border-gray-300 px-2 py-1 bg-gray-50 text-left font-medium">{children}</th>,
           td: ({ children }) => <td className="border border-gray-300 px-2 py-1 align-top">{children}</td>,
-          img: ({ node, ...props }) => (
-            <img {...props} className="max-w-full h-auto my-1 rounded" loading="lazy" />
-          ),
+          img: ({ node, ...props }) => {
+            const src = typeof props.src === 'string' ? props.src : ''
+            const alt = typeof props.alt === 'string' ? props.alt : undefined
+
+            if (!src) return null
+
+            return (
+              <figure className="my-2 overflow-hidden rounded-xl border border-primary-100 bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => onOpenAsset?.({ url: src, alt })}
+                  className="block w-full bg-primary-50/40"
+                  title="Open image preview"
+                >
+                  <img
+                    {...props}
+                    src={src}
+                    alt={alt}
+                    className="max-h-60 w-full object-contain"
+                    loading="lazy"
+                  />
+                </button>
+                <figcaption className="flex items-center justify-between gap-2 border-t border-primary-100 px-3 py-2">
+                  <span className="min-w-0 truncate text-xs text-gray-500">
+                    {alt || src}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOpenAsset?.({ url: src, alt })}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      <Expand className="h-3.5 w-3.5" />
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onAddAssetToSlide?.({ url: src, alt })}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+                    >
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      Add
+                    </button>
+                  </div>
+                </figcaption>
+              </figure>
+            )
+          },
           hr: () => <hr className="my-2 border-gray-200" />,
         }}
       >

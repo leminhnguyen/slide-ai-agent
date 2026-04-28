@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
 import { streamChat } from '../../api/chatApi'
 import { slideApi } from '../../api/slideApi'
@@ -7,9 +7,13 @@ import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import type { ChatMessage, Document } from '../../types'
 import MarkdownMessage from '../../components/MarkdownMessage'
+import AssetPreviewModal from '../../components/AssetPreviewModal'
+import { appendImageToSlide, getSlideOptions } from '../../utils/slides'
 
 interface ChatPanelProps {
   onSlideUpdated: () => void
+  activeSlide?: number
+  onSlideFocused?: (slideNumber: number) => void
 }
 
 const WELCOME: ChatMessage = {
@@ -71,13 +75,24 @@ function stripMentionTokens(input: string) {
     .trim()
 }
 
-export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
-  const { session, documents, selectedDocumentIds } = useAppStore()
+export default function ChatPanel({
+  onSlideUpdated,
+  activeSlide = 1,
+  onSlideFocused,
+}: ChatPanelProps) {
+  const { session, documents, selectedDocumentIds, setSession } = useAppStore()
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [previewAsset, setPreviewAsset] = useState<{ url: string; alt?: string } | null>(null)
+  const [selectedSlideForAsset, setSelectedSlideForAsset] = useState(activeSlide)
+  const [addingAsset, setAddingAsset] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const slideOptions = useMemo(
+    () => getSlideOptions(session?.markdown ?? ''),
+    [session?.markdown],
+  )
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -93,6 +108,8 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
   // Reset messages when session changes
   useEffect(() => {
     setMessages([WELCOME])
+    setPreviewAsset(null)
+    setSelectedSlideForAsset(1)
   }, [session?.id])
 
   const mentionState = getMentionQuery(input, textareaRef.current?.selectionStart ?? input.length)
@@ -104,6 +121,52 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
   const taggedDocumentIds = extractTaggedDocuments(input, documents)
   const taggedDocuments = documents.filter((doc) => taggedDocumentIds.includes(doc.id))
   const selectedDocuments = documents.filter((doc) => selectedDocumentIds.includes(doc.id))
+
+  const openAssetPreview = useCallback((asset: { url: string; alt?: string }) => {
+    setPreviewAsset(asset)
+    setSelectedSlideForAsset(
+      slideOptions.some((slide) => slide.number === activeSlide)
+        ? activeSlide
+        : slideOptions[0]?.number ?? 1,
+    )
+  }, [activeSlide, slideOptions])
+
+  const closeAssetPreview = useCallback(() => {
+    if (addingAsset) return
+    setPreviewAsset(null)
+  }, [addingAsset])
+
+  const addAssetToSlide = useCallback(async () => {
+    if (!session || !previewAsset || slideOptions.length === 0) return
+
+    setAddingAsset(true)
+    try {
+      const markdown = appendImageToSlide(
+        session.markdown,
+        selectedSlideForAsset,
+        previewAsset.url,
+        previewAsset.alt,
+      )
+      const updatedSession = await slideApi.update(session.id, { markdown })
+      setSession(updatedSession)
+      onSlideFocused?.(selectedSlideForAsset)
+      onSlideUpdated()
+      toast.success(`Added image to slide ${selectedSlideForAsset}`)
+      setPreviewAsset(null)
+    } catch (error) {
+      toast.error('Failed to add image to slide')
+    } finally {
+      setAddingAsset(false)
+    }
+  }, [
+    onSlideFocused,
+    onSlideUpdated,
+    previewAsset,
+    selectedSlideForAsset,
+    session,
+    setSession,
+    slideOptions.length,
+  ])
 
   const insertMention = (doc: Document) => {
     const textarea = textareaRef.current
@@ -221,7 +284,11 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
             >
               {msg.content ? (
                 msg.role === 'assistant' ? (
-                  <MarkdownMessage content={msg.content} />
+                  <MarkdownMessage
+                    content={msg.content}
+                    onOpenAsset={openAssetPreview}
+                    onAddAssetToSlide={openAssetPreview}
+                  />
                 ) : (
                   <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.content}</span>
                 )
@@ -308,6 +375,15 @@ export default function ChatPanel({ onSlideUpdated }: ChatPanelProps) {
           Enter to send · Shift+Enter for newline · Type <code>@</code> to tag a source file
         </p>
       </div>
+      <AssetPreviewModal
+        asset={previewAsset}
+        slideOptions={slideOptions}
+        selectedSlide={selectedSlideForAsset}
+        onSelectedSlideChange={setSelectedSlideForAsset}
+        onAddToSlide={addAssetToSlide}
+        onClose={closeAssetPreview}
+        adding={addingAsset}
+      />
     </div>
   )
 }

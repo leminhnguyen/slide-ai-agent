@@ -33,6 +33,7 @@ dependencies = [
     "nltk>=3.9.0",
     # Chart generation & image tools
     "matplotlib>=3.9.0",
+    "pandas>=2.2.0",
     "Pillow>=10.3.0",
 ]
 
