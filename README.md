@@ -3,16 +3,12 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 
 ![Slide AI Agent demo](be/assets/demo.gif)
 
-
 ---
 
 ## Agent Architecture
 ![alt text](be/assets/agent.png)
 
 ---
-
-## Agent Architecture
-![alt text](be/assets/agent.png)
 
 ## Features
 
@@ -25,6 +21,7 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 | **Workspace controls** | Resizable panels, collapsible chat, auto-save, and slide navigation |
 | **Session memory** | Conversation and slide sessions are persisted with MongoDB |
 
+---
 
 ## Todo
 
@@ -68,6 +65,8 @@ Remove local data:
 ```bash
 docker compose down -v
 ```
+
+---
 
 ## Project Structure
 
