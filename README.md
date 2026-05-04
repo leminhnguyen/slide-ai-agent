@@ -1,8 +1,13 @@
 # Slide AI Agent
+AI-powered presentation builder with a conversational agent, live Marp preview, source-document retrieval, and export to presentation formats.
 
 ![Slide AI Agent demo](be/assets/demo.gif)
 
-AI-powered presentation builder with a conversational agent, live Marp preview, source-document retrieval, and export to presentation formats.
+
+---
+
+## Agent Architecture
+![alt text](be/assets/agent.png)
 
 ---
 
