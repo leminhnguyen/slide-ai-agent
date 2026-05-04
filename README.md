@@ -4,6 +4,11 @@
 
 AI-powered presentation builder with a conversational agent, live Marp preview, source-document retrieval, and export to presentation formats.
 
+---
+
+## Agent Architecture
+![alt text](be/assets/agent.png)
+
 ## Features
 
 | Feature | Description |
@@ -14,6 +19,7 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 | **Export** | Download slides as HTML, PDF, PPTX, or Markdown |
 | **Workspace controls** | Resizable panels, collapsible chat, auto-save, and slide navigation |
 | **Session memory** | Conversation and slide sessions are persisted with MongoDB |
+
 
 ## Todo
 
