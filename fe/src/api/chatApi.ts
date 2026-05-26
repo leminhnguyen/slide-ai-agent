@@ -1,3 +1,5 @@
+import type { ChatMessage } from '../types'
+
 /**
  * Stream a chat message from the backend SSE endpoint.
  * onChunk is called with each text fragment.
@@ -93,4 +95,14 @@ export async function streamChat(
   if (buffer.trim()) handleEvent(buffer)
 
   return { slide_updated: slideUpdated }
+}
+
+export async function listMessages(sessionId: string): Promise<ChatMessage[]> {
+  const response = await fetch(`/api/chat/${sessionId}/messages`)
+
+  if (!response.ok) {
+    throw new Error(`Message history request failed: ${response.status}`)
+  }
+
+  return response.json()
 }

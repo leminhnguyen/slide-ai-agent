@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { streamChat, type ChatStreamEvent } from '../../api/chatApi'
+import { listMessages, streamChat, type ChatStreamEvent } from '../../api/chatApi'
 import { slideApi } from '../../api/slideApi'
 import { useAppStore } from '../../store/useAppStore'
 import toast from 'react-hot-toast'
@@ -86,6 +86,7 @@ export default function ChatPanel({
 }: ChatPanelProps) {
   const { session, documents, selectedDocumentIds, setSession } = useAppStore()
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME])
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [previewAsset, setPreviewAsset] = useState<{ url: string; alt?: string } | null>(null)
@@ -109,11 +110,41 @@ export default function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Reset messages when session changes
+  // Load persisted user-visible transcript when session changes.
   useEffect(() => {
-    setMessages([WELCOME])
+    let cancelled = false
+
+    const loadHistory = async () => {
+      if (!session?.id) {
+        setMessages([WELCOME])
+        return
+      }
+
+      setLoadingHistory(true)
+      setMessages([WELCOME])
+      try {
+        const history = await listMessages(session.id)
+        if (cancelled) return
+        setMessages(history.length > 0 ? history : [WELCOME])
+      } catch {
+        if (!cancelled) {
+          toast.error('Failed to load chat history')
+          setMessages([WELCOME])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingHistory(false)
+        }
+      }
+    }
+
     setPreviewAsset(null)
     setSelectedSlideForAsset(1)
+    loadHistory()
+
+    return () => {
+      cancelled = true
+    }
   }, [session?.id])
 
   const mentionState = getMentionQuery(input, textareaRef.current?.selectionStart ?? input.length)
@@ -293,6 +324,12 @@ export default function ChatPanel({
     <div className="flex flex-col h-full">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {loadingHistory && (
+          <div className="flex items-center justify-center gap-2 py-3 text-xs text-primary-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>Loading chat history...</span>
+          </div>
+        )}
         {messages.map((msg, i) => (
           <div
             key={i}

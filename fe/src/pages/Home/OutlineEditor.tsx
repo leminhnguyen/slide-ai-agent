@@ -242,14 +242,14 @@ export default function OutlineEditor({ onSaved, onActiveSlideChange, externalRe
           >
             <span
               className={clsx(
-                'relative h-4 w-7 shrink-0 rounded-full transition-colors',
+                'relative h-4 w-10 shrink-0 rounded-full transition-colors', // Increased width from w-7 to w-10
                 autoSaveEnabled ? 'bg-primary-500' : 'bg-amber-400',
               )}
             >
               <span
                 className={clsx(
                   'absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform',
-                  autoSaveEnabled ? 'translate-x-3.5' : 'translate-x-0.5',
+                  autoSaveEnabled ? 'translate-x-6' : 'translate-x-1', // Adjusted translate-x values for better alignment
                 )}
               />
             </span>

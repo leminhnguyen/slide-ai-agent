@@ -1,11 +1,14 @@
 import { create } from 'zustand'
-import type { Document, SlideSession } from '../types'
+import type { Document, SlideSession, SlideSessionSummary } from '../types'
 
 interface AppStore {
   session: SlideSession | null
+  sessions: SlideSessionSummary[]
   documents: Document[]
   selectedDocumentIds: string[]
   setSession: (s: SlideSession) => void
+  setSessions: (sessions: SlideSessionSummary[]) => void
+  upsertSessionSummary: (summary: SlideSessionSummary) => void
   setDocuments: (docs: Document[]) => void
   toggleDocumentSelection: (docId: string) => void
   setSelectedDocumentIds: (docIds: string[]) => void
@@ -15,6 +18,7 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>((set) => ({
   session: null,
+  sessions: [],
   documents: [],
   selectedDocumentIds: [],
   setSession: (session) =>
@@ -23,6 +27,17 @@ export const useAppStore = create<AppStore>((set) => ({
       documents: state.session?.id === session.id ? state.documents : [],
       selectedDocumentIds: state.session?.id === session.id ? state.selectedDocumentIds : [],
     })),
+  setSessions: (sessions) => set({ sessions }),
+  upsertSessionSummary: (summary) =>
+    set((state) => {
+      const withoutCurrent = state.sessions.filter((session) => session.id !== summary.id)
+      return {
+        sessions: [summary, ...withoutCurrent].sort(
+          (a, b) =>
+            new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime(),
+        ),
+      }
+    }),
   setDocuments: (documents) =>
     set((state) => ({
       documents,

@@ -1,8 +1,7 @@
 """Slide session models."""
 from datetime import datetime, timezone
 from typing import Optional
-from pydantic import BaseModel, Field
-from bson import ObjectId
+from pydantic import BaseModel
 
 
 DEFAULT_THEME_FRONTMATTER = """---
@@ -62,6 +61,18 @@ class SlideSessionOut(BaseModel):
     markdown: str
     created_at: datetime
     updated_at: datetime
+    last_activity_at: datetime
+
+
+class SlideSessionSummary(BaseModel):
+    id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    last_activity_at: datetime
+    message_count: int = 0
+    last_message_preview: str = ""
+    match_preview: Optional[str] = None
 
 
 class SlideSessionUpdate(BaseModel):

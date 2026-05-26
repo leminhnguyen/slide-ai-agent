@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MessageSquare, FileText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { MessageSquare, FileText, Loader2, ChevronLeft, ChevronRight, History } from 'lucide-react'
 import Topbar from './Topbar'
 import OutlineEditor from './OutlineEditor'
 import SlidePreview from './SlidePreview'
 import ChatPanel from './ChatPanel'
 import SourcesPanel from './SourcesPanel'
+import SessionDrawer from './SessionDrawer'
 import PanelDivider from '../../components/PanelDivider'
 import { slideApi } from '../../api/slideApi'
 import { useAppStore } from '../../store/useAppStore'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import type { SlideSessionSummary } from '../../types'
 
 type LeftTab = 'chat' | 'sources'
 type DividerSide = 'left' | 'right'
@@ -30,15 +33,19 @@ const CENTER_MIN = 360
 const RIGHT_MIN = 300
 const LEFT_HANDLE_WIDTH = 20
 const RIGHT_DIVIDER_WIDTH = 12
+const ACTIVE_SESSION_STORAGE_KEY = 'slide-ai-agent.activeSessionId'
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
 export default function Home() {
-  const { setSession } = useAppStore()
+  const navigate = useNavigate()
+  const { sessionId: routeSessionId } = useParams<{ sessionId: string }>()
+  const { session, setSession, setSessions } = useAppStore()
   const [bootstrapping, setBootstrapping] = useState(true)
   const [leftTab, setLeftTab] = useState<LeftTab>('chat')
+  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
   const [previewKey, setPreviewKey] = useState(0)
   const [activeSlide, setActiveSlide] = useState(1)
   const [leftCollapsed, setLeftCollapsed] = useState(false)
@@ -52,6 +59,7 @@ export default function Home() {
     side: DividerSide
     startX: number
     startRatios: PanelRatios
+    startPixels: PanelRatios
   } | null>(null)
   const pendingRatiosRef = useRef<PanelRatios | null>(null)
   const frameRef = useRef<number | null>(null)
@@ -79,21 +87,29 @@ export default function Home() {
   }, [leftCollapsed, panelRatios])
 
   const availablePanelWidth = Math.max(workspaceWidth - LEFT_HANDLE_WIDTH - RIGHT_DIVIDER_WIDTH, 1)
-  const minimumRatios = useMemo(() => {
-    const raw = {
-      left: (LEFT_MIN / availablePanelWidth) * 100,
-      center: (CENTER_MIN / availablePanelWidth) * 100,
-      right: (RIGHT_MIN / availablePanelWidth) * 100,
-    }
-    const total = raw.left + raw.center + raw.right
-    const scale = total > 100 ? 100 / total : 1
+  const minimumPixels = useMemo(() => ({
+    left: Math.min(LEFT_MIN, availablePanelWidth * 0.18),
+    center: Math.min(CENTER_MIN, availablePanelWidth * 0.28),
+    right: Math.min(RIGHT_MIN, availablePanelWidth * 0.25),
+  }), [availablePanelWidth])
 
+  const ratiosToPixels = useCallback((ratios: PanelRatios): PanelRatios => {
+    const total = Math.max(ratios.left + ratios.center + ratios.right, 1)
     return {
-      left: raw.left * scale,
-      center: raw.center * scale,
-      right: raw.right * scale,
+      left: (ratios.left / total) * availablePanelWidth,
+      center: (ratios.center / total) * availablePanelWidth,
+      right: (ratios.right / total) * availablePanelWidth,
     }
   }, [availablePanelWidth])
+
+  const pixelsToRatios = useCallback((pixels: PanelRatios): PanelRatios => {
+    const total = Math.max(pixels.left + pixels.center + pixels.right, 1)
+    return {
+      left: (pixels.left / total) * 100,
+      center: (pixels.center / total) * 100,
+      right: (pixels.right / total) * 100,
+    }
+  }, [])
 
   const gridTemplateColumns = useMemo(() => {
     const leftTrack = leftCollapsed ? '0px' : `minmax(0, ${panelRatios.left}fr)`
@@ -108,46 +124,45 @@ export default function Home() {
       side,
       startX: e.clientX,
       startRatios: panelRatios,
+      startPixels: ratiosToPixels(panelRatios),
     }
     setActiveDivider(side)
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'col-resize'
-  }, [panelRatios])
+  }, [panelRatios, ratiosToPixels])
 
-  const handleDividerPointerMove = useCallback((side: DividerSide, e: React.PointerEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
-
+  const handleDocumentPointerMove = useCallback((e: PointerEvent) => {
     const dragState = dragStateRef.current
-    if (!dragState || dragState.side !== side) return
+    if (!dragState) return
 
-    const deltaRatio = ((e.clientX - dragState.startX) / availablePanelWidth) * 100
+    const deltaPx = e.clientX - dragState.startX
 
     const nextRatios = (() => {
-      if (side === 'left') {
+      if (dragState.side === 'left') {
         const nextLeft = clamp(
-          dragState.startRatios.left + deltaRatio,
-          minimumRatios.left,
-          100 - dragState.startRatios.right - minimumRatios.center,
+          dragState.startPixels.left + deltaPx,
+          minimumPixels.left,
+          availablePanelWidth - dragState.startPixels.right - minimumPixels.center,
         )
 
-        return {
+        return pixelsToRatios({
           left: nextLeft,
-          center: 100 - dragState.startRatios.right - nextLeft,
-          right: dragState.startRatios.right,
-        }
+          center: availablePanelWidth - dragState.startPixels.right - nextLeft,
+          right: dragState.startPixels.right,
+        })
       }
 
       const nextCenter = clamp(
-        dragState.startRatios.center + deltaRatio,
-        minimumRatios.center,
-        100 - dragState.startRatios.left - minimumRatios.right,
+        dragState.startPixels.center + deltaPx,
+        minimumPixels.center,
+        availablePanelWidth - dragState.startPixels.left - minimumPixels.right,
       )
 
-      return {
-        left: dragState.startRatios.left,
+      return pixelsToRatios({
+        left: dragState.startPixels.left,
         center: nextCenter,
-        right: 100 - dragState.startRatios.left - nextCenter,
-      }
+        right: availablePanelWidth - dragState.startPixels.left - nextCenter,
+      })
     })()
 
     pendingRatiosRef.current = nextRatios
@@ -159,18 +174,41 @@ export default function Home() {
         setPanelRatios(pendingRatiosRef.current)
       }
     })
-  }, [availablePanelWidth, minimumRatios])
+  }, [availablePanelWidth, minimumPixels, pixelsToRatios])
 
-  const handleDividerPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    }
+  const handleDividerPointerMove = useCallback((_side: DividerSide, _e: React.PointerEvent<HTMLDivElement>) => {
+    // Dragging is handled at document level so movement continues across
+    // iframes and editor surfaces.
+  }, [])
+
+  const endDividerDrag = useCallback(() => {
     dragStateRef.current = null
     pendingRatiosRef.current = null
     setActiveDivider(null)
     document.body.style.userSelect = ''
     document.body.style.cursor = ''
   }, [])
+
+  const handleDividerPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+    endDividerDrag()
+  }, [endDividerDrag])
+
+  useEffect(() => {
+    if (!activeDivider) return
+
+    document.addEventListener('pointermove', handleDocumentPointerMove)
+    document.addEventListener('pointerup', endDividerDrag)
+    document.addEventListener('pointercancel', endDividerDrag)
+
+    return () => {
+      document.removeEventListener('pointermove', handleDocumentPointerMove)
+      document.removeEventListener('pointerup', endDividerDrag)
+      document.removeEventListener('pointercancel', endDividerDrag)
+    }
+  }, [activeDivider, endDividerDrag, handleDocumentPointerMove])
 
   useEffect(() => {
     return () => {
@@ -200,30 +238,117 @@ export default function Home() {
     setLeftCollapsed(true)
   }, [leftCollapsed])
 
-  // Initialise: create a default session on first visit
+  const activateSession = useCallback((
+    nextSession: Awaited<ReturnType<typeof slideApi.get>>,
+    options: { replaceUrl?: boolean } = {},
+  ) => {
+    window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, nextSession.id)
+    setSession(nextSession)
+    setActiveSlide(1)
+    setPreviewKey(k => k + 1)
+    if (routeSessionId !== nextSession.id) {
+      navigate(`/sessions/${encodeURIComponent(nextSession.id)}`, {
+        replace: options.replaceUrl ?? false,
+      })
+    }
+  }, [navigate, routeSessionId, setSession])
+
+  const refreshSessions = useCallback(async () => {
+    const list = await slideApi.list({ limit: 50 })
+    setSessions(list)
+    return list
+  }, [setSessions])
+
+  // Initialise: prefer the URL session, then the stored/latest session, then create one.
   useEffect(() => {
+    let cancelled = false
+
     const init = async () => {
       try {
+        if (routeSessionId) {
+          try {
+            const s = await slideApi.get(routeSessionId)
+            if (!cancelled) {
+              activateSession(s, { replaceUrl: true })
+              await refreshSessions()
+            }
+            return
+          } catch {
+            if (window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY) === routeSessionId) {
+              window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+            }
+          }
+        }
+
+        const storedSessionId = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY)
+        if (storedSessionId) {
+          try {
+            const s = await slideApi.get(storedSessionId)
+            if (!cancelled) {
+              activateSession(s, { replaceUrl: true })
+              await refreshSessions()
+            }
+            return
+          } catch {
+            window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+          }
+        }
+
+        const list = await refreshSessions()
+        if (cancelled) return
+
+        if (list.length > 0) {
+          const s = await slideApi.get(list[0].id)
+          if (!cancelled) {
+            activateSession(s, { replaceUrl: true })
+          }
+          return
+        }
+
         const s = await slideApi.create('New Presentation')
-        setSession(s)
+        if (!cancelled) {
+          activateSession(s, { replaceUrl: true })
+        }
+        await refreshSessions()
       } catch {
         toast.error('Failed to initialise session')
       } finally {
-        setBootstrapping(false)
+        if (!cancelled) {
+          setBootstrapping(false)
+        }
       }
     }
     init()
-  }, [])
+
+    return () => {
+      cancelled = true
+    }
+  }, [activateSession, refreshSessions, routeSessionId])
 
   const handleNewSession = async () => {
     try {
       const s = await slideApi.create('New Presentation')
-      setSession(s)
-      setActiveSlide(1)
-      setPreviewKey(k => k + 1)
+      activateSession(s)
+      await refreshSessions()
       toast.success('New presentation created')
     } catch {
       toast.error('Failed to create new session')
+    }
+  }
+
+  const handleSelectSession = async (item: SlideSessionSummary) => {
+    if (session?.id === item.id) {
+      activateSession(session)
+      setSessionDrawerOpen(false)
+      return
+    }
+
+    try {
+      const s = await slideApi.get(item.id)
+      activateSession(s)
+      setSessionDrawerOpen(false)
+    } catch {
+      toast.error('Failed to open session')
     }
   }
 
@@ -261,12 +386,31 @@ export default function Home() {
           {/* ── Left panel: Chat + Sources ───────────────────────── */}
           <div
             className={clsx(
-              'panel flex min-w-0 flex-col overflow-hidden transition-[opacity,transform] duration-200',
+              'panel relative flex min-w-0 flex-col overflow-hidden transition-[opacity,transform] duration-200',
               leftCollapsed && 'pointer-events-none -translate-x-2 opacity-0',
             )}
           >
+            <SessionDrawer
+              open={sessionDrawerOpen}
+              activeSessionId={session?.id}
+              onClose={() => setSessionDrawerOpen(false)}
+              onSelectSession={handleSelectSession}
+            />
+
             {/* Tab switcher */}
             <div className="flex border-b border-primary-100 flex-shrink-0">
+              <button
+                onClick={() => setSessionDrawerOpen(true)}
+                className={clsx(
+                  'flex items-center justify-center border-r border-primary-100 px-3 text-xs font-medium transition-colors',
+                  sessionDrawerOpen
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-500 hover:bg-primary-50 hover:text-primary-600',
+                )}
+                title="Sessions and history"
+              >
+                <History className="h-3.5 w-3.5" />
+              </button>
               {([
                 { id: 'chat' as const, label: 'Chat', icon: <MessageSquare className="w-3.5 h-3.5" /> },
                 { id: 'sources' as const, label: 'Sources', icon: <FileText className="w-3.5 h-3.5" /> },

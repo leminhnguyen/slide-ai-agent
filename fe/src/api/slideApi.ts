@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { SlideSession } from '../types'
+import type { SlideSession, SlideSessionSummary } from '../types'
 
 const api = axios.create({ baseURL: '/api' })
 export type ExportFormat = 'html' | 'pdf' | 'pptx' | 'pptx-editable' | 'md'
@@ -21,6 +21,9 @@ function getFilenameFromDisposition(disposition: string | null, fallback: string
 }
 
 export const slideApi = {
+  list: (params?: { q?: string; limit?: number }) =>
+    api.get<SlideSessionSummary[]>('/slides', { params }).then(r => r.data),
+
   create: (title = 'Untitled Presentation') =>
     api.post<SlideSession>('/slides', { title }).then(r => r.data),
 

@@ -27,6 +27,16 @@ def _get_context(config: RunnableConfig) -> dict:
     return config.get("configurable", {}).get("context", {})
 
 
+def _slide_activity_updates(markdown: str) -> dict:
+    now = datetime.now(timezone.utc)
+    return {
+        "markdown": markdown,
+        "updated_at": now,
+        "last_activity_at": now,
+        "has_user_activity": True,
+    }
+
+
 @tool
 async def get_outline(config: RunnableConfig) -> str:
     """Get the current markdown outline for the presentation."""
@@ -55,7 +65,7 @@ async def update_outline(new_markdown: str, config: RunnableConfig) -> str:
     normalized_markdown = _normalize_outline_markdown(new_markdown, current_markdown)
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"markdown": normalized_markdown, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": _slide_activity_updates(normalized_markdown)},
     )
     # Signal to the agent context that slides were updated
     ctx["slide_updated"] = True
@@ -214,7 +224,7 @@ async def add_slide(
     new_markdown = _join_slides(slides)
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"markdown": new_markdown, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": _slide_activity_updates(new_markdown)},
     )
     ctx["slide_updated"] = True
     return f"Slide inserted at position {pos}."
@@ -247,7 +257,7 @@ async def delete_slide(position: int, config: RunnableConfig) -> str:
     new_markdown = _join_slides(slides)
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"markdown": new_markdown, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": _slide_activity_updates(new_markdown)},
     )
     ctx["slide_updated"] = True
     return f"Slide {position} deleted."
@@ -578,7 +588,7 @@ async def edit_slide(
 
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"markdown": _join_slides(slides), "updated_at": datetime.now(timezone.utc)}},
+        {"$set": _slide_activity_updates(_join_slides(slides))},
     )
     ctx["slide_updated"] = True
     return f"Slide {slide_number} updated."
@@ -620,7 +630,7 @@ async def add_image_to_slide(
 
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"markdown": _join_slides(slides), "updated_at": datetime.now(timezone.utc)}},
+        {"$set": _slide_activity_updates(_join_slides(slides))},
     )
     ctx["slide_updated"] = True
     return f"Image inserted into slide {slide_number}."
