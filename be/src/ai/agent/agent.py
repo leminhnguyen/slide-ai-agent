@@ -161,7 +161,8 @@ async def stream_agent_response(
                         ensure_ascii=False,
                     )
 
-            # Detect tool calls that modify slides
+            # Detect tool calls that modify slides. Tool names alone are not
+            # enough because a failed tool call still emits on_tool_end.
             elif kind == "on_tool_end":
                 tool_name = event.get("name", "")
                 if tool_name in (
@@ -171,7 +172,14 @@ async def stream_agent_response(
                     "edit_slide",
                     "add_image_to_slide",
                 ):
-                    slide_updated = True
+                    tool_output = event.get("data", {}).get("output")
+                    output_text = str(getattr(tool_output, "content", tool_output) or "")
+                    if not output_text.lower().startswith(("error", "invalid", "presentation not found")):
+                        slide_updated = True
+
+        slide_updated = slide_updated or bool(
+            config.get("configurable", {}).get("context", {}).get("slide_updated")
+        )
 
     except Exception as e:
         logger.error(f"Agent stream error: {e}")

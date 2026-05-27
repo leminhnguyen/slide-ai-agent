@@ -50,6 +50,53 @@ async def get_outline(config: RunnableConfig) -> str:
 
 
 @tool
+async def get_slides(
+    slide_numbers: Annotated[list[int], "1-based slide numbers to inspect"],
+    config: RunnableConfig,
+) -> str:
+    """Get the latest markdown for selected slides from the current presentation.
+
+    Use this after edits to verify the actual saved state of target slides
+    before telling the user that the changes were applied.
+    """
+    ctx = _get_context(config)
+    session_id = ctx.get("session_id", "")
+    db = get_db()
+    doc = await db.slides.find_one({"_id": ObjectId(session_id)})
+    if not doc:
+        return "No presentation found."
+
+    slides = _split_slides(doc.get("markdown", ""))
+    if not slide_numbers:
+        return f"No slide numbers provided. The presentation has {len(slides)} slides."
+
+    seen: set[int] = set()
+    requested = []
+    for number in slide_numbers:
+        if number in seen:
+            continue
+        seen.add(number)
+        requested.append(number)
+
+    parts = [f"Total slides: {len(slides)}"]
+    for number in requested:
+        if number < 1 or number > len(slides):
+            parts.append(f"\n## Slide {number}: INVALID (valid range: 1..{len(slides)})")
+            continue
+
+        slide = slides[number - 1]
+        title = _get_slide_title(slide, number)
+        parts.append(
+            f"\n## Slide {number}: {title}\n"
+            "```markdown\n"
+            f"{slide}\n"
+            "```"
+        )
+
+    return "\n".join(parts)
+
+
+@tool
 async def update_outline(new_markdown: str, config: RunnableConfig) -> str:
     """
     Replace the entire markdown outline with a new version.
@@ -350,6 +397,18 @@ def _join_slides(slides: list[str]) -> str:
     return "\n\n---\n\n".join(slides)
 
 
+def _get_slide_title(slide_markdown: str, slide_number: int) -> str:
+    """Return the first markdown heading in a slide for verification output."""
+    for line in slide_markdown.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("#"):
+            continue
+        title = stripped.lstrip("#").strip()
+        if title:
+            return title
+    return f"Slide {slide_number}"
+
+
 # ── helpers for image / chart tools ───────────────────────────────────
 
 UPLOADS_ROOT = Path("uploads")
@@ -637,6 +696,7 @@ async def add_image_to_slide(
 
 AGENT_TOOLS = [
     get_outline,
+    get_slides,
     update_outline,
     search_documents,
     search_web,
