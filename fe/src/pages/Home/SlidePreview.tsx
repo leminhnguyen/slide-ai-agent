@@ -43,20 +43,29 @@ function preparePreviewHtml(html: string) {
 export default function SlidePreview({ activeSlide = 1, refreshKey }: SlidePreviewProps) {
   const { session } = useAppStore()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const previewRequestRef = useRef(0)
   const [loading, setLoading] = useState(false)
   const [iframeReady, setIframeReady] = useState(false)
   const [slideCount, setSlideCount] = useState(1)
   const [currentSlide, setCurrentSlide] = useState(1)
   const [htmlContent, setHtmlContent] = useState<string | null>(null)
+  const sessionId = session?.id
 
   const loadPreview = useCallback(async () => {
-    if (!session) return
+    if (!sessionId) return
+    const requestId = previewRequestRef.current + 1
+    previewRequestRef.current = requestId
     setLoading(true)
     setIframeReady(false)
     try {
-      const res = await fetch(`/api/slides/${session.id}/export?format=html`)
+      const res = await fetch(
+        `/api/slides/${sessionId}/export?format=html&_=${Date.now()}`,
+        { cache: 'no-store' },
+      )
       if (!res.ok) throw new Error('Export failed')
       const html = await res.text()
+      if (requestId !== previewRequestRef.current) return
+
       setHtmlContent(preparePreviewHtml(html))
 
       // Count slides: Marp outputs <section> elements
@@ -66,13 +75,15 @@ export default function SlidePreview({ activeSlide = 1, refreshKey }: SlidePrevi
     } catch (e) {
       console.error('Preview error:', e)
     } finally {
-      setLoading(false)
+      if (requestId === previewRequestRef.current) {
+        setLoading(false)
+      }
     }
-  }, [session])
+  }, [sessionId])
 
   useEffect(() => {
     loadPreview()
-  }, [loadPreview, session?.updated_at, refreshKey])
+  }, [loadPreview, refreshKey])
 
   // Render HTML directly in srcDoc so Marp doesn't trip over blob: history APIs.
   useEffect(() => {

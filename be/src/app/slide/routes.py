@@ -261,7 +261,10 @@ async def export_session(
         return Response(
             content=markdown.encode("utf-8"),
             media_type=EXPORT_MIME["md"],
-            headers={"Content-Disposition": f'attachment; filename="{title}.md"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{title}.md"',
+                "Cache-Control": "no-store",
+            },
         )
 
     try:
@@ -280,5 +283,8 @@ async def export_session(
     return Response(
         content=data,
         media_type=EXPORT_MIME[format],
-        headers={"Content-Disposition": f'attachment; filename="{title}.{extension}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{title}.{extension}"',
+            "Cache-Control": "no-store",
+        },
     )

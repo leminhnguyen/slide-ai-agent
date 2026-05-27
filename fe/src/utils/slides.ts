@@ -3,12 +3,13 @@ export interface SlideOption {
   title: string
 }
 
-function escapeHtml(value: string): string {
+function escapeMarkdownAlt(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+    .replace(/\\/g, '\\\\')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export function splitSlides(markdown: string): string[] {
@@ -101,13 +102,9 @@ export function appendImageToSlide(
   }
 
   const fallbackAlt = imageUrl.split('/').pop() || 'Generated image'
-  const safeAlt = escapeHtml(altText?.trim() || fallbackAlt)
-  const imageHtml =
-    '\n\n<div style="text-align:center; margin-top: 16px;">' +
-    `<img src="${imageUrl}" alt="${safeAlt}" ` +
-    'style="display:inline-block; max-width: 100%; max-height: 260px; object-fit: contain;" />' +
-    '</div>'
-  slides[slideNumber - 1] = slides[slideNumber - 1].replace(/\s+$/, '') + imageHtml
+  const safeAlt = escapeMarkdownAlt(altText || fallbackAlt)
+  const imageMarkdown = `\n\n![height:260px ${safeAlt}](${imageUrl})`
+  slides[slideNumber - 1] = slides[slideNumber - 1].replace(/\s+$/, '') + imageMarkdown
 
   return joinSlides(slides)
 }

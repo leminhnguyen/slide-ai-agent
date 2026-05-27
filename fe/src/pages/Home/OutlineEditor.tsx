@@ -72,6 +72,8 @@ function getSlideNumberForPosition(markdownContent: string, position: number) {
 export default function OutlineEditor({ onSaved, onActiveSlideChange, externalRefreshKey = 0 }: OutlineEditorProps) {
   const { session, setSession, updateMarkdown } = useAppStore()
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savingRef = useRef(false)
+  const pendingSaveRef = useRef(false)
   const draftMarkdownRef = useRef(session?.markdown ?? '')
   const lastSavedMarkdownRef = useRef(session?.markdown ?? '')
   const sessionRef = useRef(session)
@@ -94,11 +96,14 @@ export default function OutlineEditor({ onSaved, onActiveSlideChange, externalRe
 
   useEffect(() => {
     sessionRef.current = session
+  }, [session])
+
+  useEffect(() => {
     draftMarkdownRef.current = session?.markdown ?? ''
     lastSavedMarkdownRef.current = session?.markdown ?? ''
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setSaveState('idle')
-  }, [session?.id, session?.markdown])
+  }, [session?.id, session?.updated_at])
 
   useEffect(() => {
     if (!onActiveSlideChange) return
@@ -110,21 +115,41 @@ export default function OutlineEditor({ onSaved, onActiveSlideChange, externalRe
     const markdown = draftMarkdownRef.current
 
     if (!currentSession) return
-    if (saveState === 'saving') return
+    if (savingRef.current) {
+      pendingSaveRef.current = true
+      return
+    }
     if (source === 'auto' && markdown === lastSavedMarkdownRef.current) return
 
+    savingRef.current = true
     setSaveState('saving')
     try {
       const updatedSession = await slideApi.update(currentSession.id, { markdown })
       lastSavedMarkdownRef.current = updatedSession.markdown
-      setSession(updatedSession)
-      setSaveState('saved')
-      onSaved?.(updatedSession.markdown)
+      if (draftMarkdownRef.current === markdown) {
+        setSession(updatedSession)
+        setSaveState('saved')
+        onSaved?.(updatedSession.markdown)
+      } else {
+        pendingSaveRef.current = true
+        setSaveState('dirty')
+      }
     } catch {
       setSaveState('error')
       toast.error('Failed to save outline')
+    } finally {
+      savingRef.current = false
+
+      if (pendingSaveRef.current && draftMarkdownRef.current !== lastSavedMarkdownRef.current) {
+        pendingSaveRef.current = false
+        saveTimerRef.current = setTimeout(() => {
+          void saveOutline('auto')
+        }, DEBOUNCE_MS)
+      } else {
+        pendingSaveRef.current = false
+      }
     }
-  }, [onSaved, saveState, setSession])
+  }, [onSaved, setSession])
 
   const scheduleAutoSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)

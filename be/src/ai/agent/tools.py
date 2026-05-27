@@ -375,21 +375,20 @@ def _local_path_from_url(url: str) -> Path:
     return Path(url)
 
 
-def _build_slide_asset_html(image_url: str, alt_text: str) -> str:
-    """Return a slide-friendly HTML block for inserted assets."""
-    safe_alt = (
-        alt_text.replace("&", "&amp;")
-        .replace('"', "&quot;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+def _escape_markdown_alt(value: str) -> str:
+    """Escape text for use inside markdown image alt brackets."""
     return (
-        "\n\n"
-        '<div style="text-align:center; margin-top: 16px;">'
-        f'<img src="{image_url}" alt="{safe_alt}" '
-        'style="display:inline-block; max-width: 100%; max-height: 260px; object-fit: contain;" />'
-        "</div>"
+        " ".join(value.split())
+        .replace("\\", "\\\\")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
     )
+
+
+def _build_slide_asset_markdown(image_url: str, alt_text: str) -> str:
+    """Return a slide-friendly Marp markdown image reference."""
+    safe_alt = _escape_markdown_alt(alt_text)
+    return f"\n\n![height:260px {safe_alt}]({image_url})"
 
 
 # ── tools: chart generation & image generation ────────────────────────
@@ -603,7 +602,7 @@ async def add_image_to_slide(
 ) -> str:
     """Insert an image reference into a specific slide.
 
-    Appends ``![alt](image_url)`` to the bottom of the slide's markdown.
+    Appends a Marp markdown image reference to the bottom of the slide.
     Pair this with ``run_python_code``, ``generate_image``, or ``edit_image``
     after they return an image URL.
 
@@ -625,8 +624,8 @@ async def add_image_to_slide(
         return f"Invalid slide_number {slide_number}. Valid range: 1..{len(slides)}."
 
     alt = alt_text or os.path.basename(image_url)
-    image_html = _build_slide_asset_html(image_url, alt)
-    slides[slide_number - 1] = slides[slide_number - 1].rstrip() + image_html
+    image_markdown = _build_slide_asset_markdown(image_url, alt)
+    slides[slide_number - 1] = slides[slide_number - 1].rstrip() + image_markdown
 
     await db.slides.update_one(
         {"_id": ObjectId(session_id)},
