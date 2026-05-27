@@ -10,16 +10,22 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 
 ---
 
-## Features
+## Feature Checklist
 
-| Feature | Description |
-|---------|-------------|
-| **AI slide generation and editing** | Create or refine slide decks through chat |
-| **RAG sources** | Upload PDF, DOCX, TXT, or Markdown files for grounded slide content |
-| **Live Marp preview** | Edit markdown and preview rendered slides side by side |
-| **Export** | Download slides as HTML, PDF, PPTX, or Markdown |
-| **Workspace controls** | Resizable panels, collapsible chat, auto-save, and slide navigation |
-| **Session memory** | Conversation and slide sessions are persisted with MongoDB |
+- [x] **AI slide generation and editing** - Create, rewrite, add, delete, and edit slides through the chat agent.
+- [x] **Manual Marp markdown editor** - Edit the outline directly with Markdown helpers and slide separator insertion.
+- [x] **Live Marp preview** - Render saved markdown as slides, navigate slides, and keep the preview synced after saves.
+- [x] **Auto-save and manual save** - Save editor changes automatically or with `Ctrl+Shift+S`.
+- [x] **RAG sources** - Upload PDF, DOCX, TXT, or Markdown files for grounded slide content.
+- [x] **Source selection and `@filename` tagging** - Scope chat answers to selected or explicitly tagged documents.
+- [x] **Web search tool** - Search current public information and surface source links in streamed chat output.
+- [x] **Chart generation** - Run sandboxed Python/matplotlib code and save chart PNGs under `/uploads/charts`.
+- [x] **AI image generation and editing** - Generate or edit slide assets and save them under `/uploads/images`.
+- [x] **Add generated assets to slides** - Preview images from chat and insert them into a selected slide.
+- [x] **Export** - Download slides as HTML, PDF, PPTX, editable PPTX, or Markdown.
+- [x] **Workspace controls** - Resize panels, collapse the left panel, rename sessions, and navigate by active slide.
+- [x] **Session memory and history** - Persist slide sessions and chat transcripts with MongoDB, with recent/searchable sessions.
+- [x] **Static asset serving** - Serve generated charts and images through `/uploads` for preview and export.
 
 ---
 
