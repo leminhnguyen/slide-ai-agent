@@ -1,4 +1,4 @@
-# Slide AI Agent
+# Slide AI Agent 🐙
 AI-powered presentation builder with a conversational agent, live Marp preview, source-document retrieval, and export to presentation formats.
 
 ![Slide AI Agent demo](be/assets/demo.gif)
@@ -24,7 +24,7 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 - [x] **Add generated assets to slides** - Preview images from chat and insert them into a selected slide.
 - [x] **Export** - Download slides as HTML, PDF, PPTX, editable PPTX, or Markdown.
 - [x] **Workspace controls** - Resize panels, collapse the left panel, rename sessions, and navigate by active slide.
-- [x] **Session memory and history** - Persist slide sessions and chat transcripts with MongoDB, with recent/searchable sessions.
+- [x] **Session memory and history** - Persist slide sessions and chat transcripts with MongoDB, with recent/searchable sessions and cleanup for old sessions.
 - [x] **Static asset serving** - Serve generated charts and images through `/uploads` for preview and export.
 
 ---
@@ -59,6 +59,12 @@ Open the app:
 
 - App: http://localhost:8999
 - API docs: http://localhost:8000/docs
+
+Session management:
+
+- Open the history drawer from the left-panel history button.
+- Search by session title or chat transcript content.
+- Use the trash button on a session to delete its slides, chat history, uploaded source metadata, agent memory, and indexed vectors.
 
 Stop services:
 

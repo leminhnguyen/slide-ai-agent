@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Clock3, Loader2, MessageSquare, Search, X } from 'lucide-react'
+import { Clock3, Loader2, MessageSquare, Search, Trash2, X } from 'lucide-react'
 import clsx from 'clsx'
 import { slideApi } from '../../api/slideApi'
 import { useAppStore } from '../../store/useAppStore'
@@ -10,6 +10,7 @@ interface SessionDrawerProps {
   activeSessionId?: string
   onClose: () => void
   onSelectSession: (session: SlideSessionSummary) => void
+  onDeleteSession: (session: SlideSessionSummary) => Promise<void>
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -30,11 +31,13 @@ export default function SessionDrawer({
   activeSessionId,
   onClose,
   onSelectSession,
+  onDeleteSession,
 }: SessionDrawerProps) {
-  const { sessions, setSessions } = useAppStore()
+  const { sessions, setSessions, removeSessionSummary } = useAppStore()
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const normalizedQuery = query.trim()
   const title = normalizedQuery ? 'Search history' : 'Recent sessions'
@@ -66,6 +69,23 @@ export default function SessionDrawer({
     if (normalizedQuery) return 'No matching history found.'
     return 'No saved sessions yet.'
   }, [error, normalizedQuery])
+
+  const handleDelete = async (item: SlideSessionSummary) => {
+    const confirmed = window.confirm(
+      `Delete "${item.title}"? This removes the slides, chat history, and uploaded sources for this session.`,
+    )
+    if (!confirmed) return
+
+    setDeletingId(item.id)
+    try {
+      await onDeleteSession(item)
+      removeSessionSummary(item.id)
+    } catch {
+      // Parent handler owns the toast; keep the item visible on failure.
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <>
@@ -116,43 +136,57 @@ export default function SessionDrawer({
                 const active = item.id === activeSessionId
 
                 return (
-                  <a
+                  <div
                     key={item.id}
-                    href={`/sessions/${encodeURIComponent(item.id)}`}
-                    onClick={(event) => {
-                      event.preventDefault()
-                      onSelectSession(item)
-                    }}
                     className={clsx(
-                      'block w-full rounded-lg border p-3 text-left transition-colors',
+                      'flex w-full items-start gap-2 rounded-lg border p-3 text-left transition-colors',
                       active
                         ? 'border-primary-300 bg-primary-50'
                         : 'border-transparent hover:border-primary-100 hover:bg-primary-50/70',
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
-                        {item.title}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1 text-[11px] text-gray-400">
-                        <Clock3 className="h-3 w-3" />
-                        {formatDate(item.last_activity_at)}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSelectSession(item)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+                          {item.title}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 text-[11px] text-gray-400">
+                          <Clock3 className="h-3 w-3" />
+                          {formatDate(item.last_activity_at)}
+                        </span>
+                      </div>
 
-                    {preview && (
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-                        {preview}
-                      </p>
-                    )}
+                      {preview && (
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+                          {preview}
+                        </p>
+                      )}
 
-                    <div className="mt-2 flex items-center gap-1 text-[11px] text-gray-400">
-                      <MessageSquare className="h-3 w-3" />
-                      <span>
-                        {item.message_count} message{item.message_count === 1 ? '' : 's'}
-                      </span>
-                    </div>
-                  </a>
+                      <div className="mt-2 flex items-center gap-1 text-[11px] text-gray-400">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>
+                          {item.message_count} message{item.message_count === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item)}
+                      disabled={deletingId === item.id}
+                      className="mt-0.5 shrink-0 rounded p-1 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      title="Delete session"
+                    >
+                      {deletingId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
                 )
               })}
             </div>

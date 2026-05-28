@@ -352,6 +352,36 @@ export default function Home() {
     }
   }
 
+  const handleDeleteSession = useCallback(async (item: SlideSessionSummary) => {
+    const deletingActiveSession = session?.id === item.id
+
+    try {
+      await slideApi.deleteSession(item.id)
+
+      if (window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY) === item.id) {
+        window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+      }
+
+      if (deletingActiveSession) {
+        const list = await refreshSessions()
+
+        if (list.length > 0) {
+          const nextSession = await slideApi.get(list[0].id)
+          activateSession(nextSession, { replaceUrl: true })
+        } else {
+          const nextSession = await slideApi.create('New Presentation')
+          activateSession(nextSession, { replaceUrl: true })
+          await refreshSessions()
+        }
+      }
+
+      toast.success('Session deleted')
+    } catch (error) {
+      toast.error('Failed to delete session')
+      throw error
+    }
+  }, [activateSession, refreshSessions, session?.id])
+
   const handleSlideUpdated = useCallback(() => {
     setPreviewKey(k => k + 1)
   }, [])
@@ -395,6 +425,7 @@ export default function Home() {
               activeSessionId={session?.id}
               onClose={() => setSessionDrawerOpen(false)}
               onSelectSession={handleSelectSession}
+              onDeleteSession={handleDeleteSession}
             />
 
             {/* Tab switcher */}

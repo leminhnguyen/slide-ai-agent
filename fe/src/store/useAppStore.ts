@@ -9,6 +9,7 @@ interface AppStore {
   setSession: (s: SlideSession) => void
   setSessions: (sessions: SlideSessionSummary[]) => void
   upsertSessionSummary: (summary: SlideSessionSummary) => void
+  removeSessionSummary: (sessionId: string) => void
   setDocuments: (docs: Document[]) => void
   toggleDocumentSelection: (docId: string) => void
   setSelectedDocumentIds: (docIds: string[]) => void
@@ -38,6 +39,10 @@ export const useAppStore = create<AppStore>((set) => ({
         ),
       }
     }),
+  removeSessionSummary: (sessionId) =>
+    set((state) => ({
+      sessions: state.sessions.filter((session) => session.id !== sessionId),
+    })),
   setDocuments: (documents) =>
     set((state) => ({
       documents,

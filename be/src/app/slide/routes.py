@@ -6,7 +6,9 @@ from typing import Literal
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
+from loguru import logger
 
+from src.app.rag.qdrant_ops import delete_session_vectors
 from src.app.slide.models import (
     DEFAULT_MARKDOWN,
     SlideSessionCreate,
@@ -20,7 +22,7 @@ from src.app.slide.marp_export import (
     export_as_pdf,
     export_as_pptx,
 )
-from src.libs.database import get_db
+from src.libs.database import get_client, get_db
 
 router = APIRouter(prefix="/api/slides", tags=["slides"])
 
@@ -53,6 +55,12 @@ def _serialize(doc: dict) -> SlideSessionOut:
         updated_at=doc.get("updated_at", datetime.now(timezone.utc)),
         last_activity_at=_activity_at(doc),
     )
+
+
+async def _delete_agent_memory(session_id: str) -> None:
+    memory_db = get_client()["slide_agent_memory"]
+    await memory_db.checkpoints.delete_many({"thread_id": session_id})
+    await memory_db.checkpoint_writes.delete_many({"thread_id": session_id})
 
 
 async def _summarize_sessions(
@@ -242,6 +250,28 @@ async def update_session(session_id: str, body: SlideSessionUpdate):
     if not result:
         raise HTTPException(status_code=404, detail="Session not found")
     return _serialize(result)
+
+
+@router.delete("/{session_id}", status_code=204)
+async def delete_session(session_id: str):
+    if not ObjectId.is_valid(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session ID")
+
+    db = get_db()
+    object_id = ObjectId(session_id)
+    doc = await db.slides.find_one({"_id": object_id}, {"_id": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    await db.slides.delete_one({"_id": object_id})
+    await db.chat_messages.delete_many({"session_id": session_id})
+    await db.rag_documents.delete_many({"session_id": session_id})
+    await _delete_agent_memory(session_id)
+
+    try:
+        await delete_session_vectors(session_id)
+    except Exception as e:
+        logger.warning(f"Deleted session {session_id}, but Qdrant cleanup failed: {e}")
 
 
 @router.get("/{session_id}/export")

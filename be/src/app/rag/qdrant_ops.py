@@ -128,3 +128,14 @@ async def delete_doc_vectors(session_id: str, doc_id: str) -> None:
         ),
     )
     logger.info(f"Deleted vectors for doc {doc_id}")
+
+
+async def delete_session_vectors(session_id: str) -> None:
+    client = get_qdrant()
+    collection = _collection_name(session_id)
+    existing = [c.name for c in (await client.get_collections()).collections]
+    if collection not in existing:
+        return
+
+    await client.delete_collection(collection_name=collection)
+    logger.info(f"Deleted Qdrant collection: {collection}")

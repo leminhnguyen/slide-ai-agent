@@ -49,6 +49,15 @@ class FakeCollection:
                 doc.update(update.get("$set", {}))
                 return
 
+    async def delete_one(self, query):
+        for index, doc in enumerate(self.docs):
+            if self._matches(doc, query):
+                del self.docs[index]
+                return
+
+    async def delete_many(self, query):
+        self.docs = [doc for doc in self.docs if not self._matches(doc, query)]
+
     async def find_one(self, query, projection=None):
         for doc in self.docs:
             if self._matches(doc, query):
@@ -121,9 +130,10 @@ class FakeCollection:
 
 
 class FakeDb:
-    def __init__(self, slides=None, messages=None):
+    def __init__(self, slides=None, messages=None, documents=None):
         self.slides = FakeCollection(slides)
         self.chat_messages = FakeCollection(messages)
+        self.rag_documents = FakeCollection(documents)
 
 
 def make_slide(title, when):
@@ -213,6 +223,71 @@ async def test_list_sessions_searches_title_and_chat_content(monkeypatch):
     assert {item.id for item in result} == {str(title_match["_id"]), str(chat_match["_id"])}
     assert all(item.id != str(non_match["_id"]) for item in result)
     assert any(item.match_preview == "Please include roadmap risks" for item in result)
+
+
+@pytest.mark.asyncio
+async def test_delete_session_removes_related_data(monkeypatch):
+    base = datetime(2026, 5, 26, tzinfo=timezone.utc)
+    slide = make_slide("Deck", base)
+    other_slide = make_slide("Other deck", base + timedelta(hours=1))
+    session_id = str(slide["_id"])
+    other_session_id = str(other_slide["_id"])
+    db = FakeDb(
+        slides=[slide, other_slide],
+        messages=[
+            {
+                "_id": ObjectId(),
+                "session_id": session_id,
+                "role": "user",
+                "content": "Delete me",
+                "created_at": base,
+            },
+            {
+                "_id": ObjectId(),
+                "session_id": other_session_id,
+                "role": "user",
+                "content": "Keep me",
+                "created_at": base,
+            },
+        ],
+        documents=[
+            {
+                "_id": ObjectId(),
+                "session_id": session_id,
+                "filename": "delete.md",
+                "chunk_count": 1,
+                "created_at": base,
+            },
+            {
+                "_id": ObjectId(),
+                "session_id": other_session_id,
+                "filename": "keep.md",
+                "chunk_count": 1,
+                "created_at": base,
+            },
+        ],
+    )
+    deleted_vectors = []
+    deleted_memory = []
+    monkeypatch.setattr(slide_routes, "get_db", lambda: db)
+
+    async def fake_delete_session_vectors(sid):
+        deleted_vectors.append(sid)
+
+    monkeypatch.setattr(slide_routes, "delete_session_vectors", fake_delete_session_vectors)
+
+    async def fake_delete_agent_memory(sid):
+        deleted_memory.append(sid)
+
+    monkeypatch.setattr(slide_routes, "_delete_agent_memory", fake_delete_agent_memory)
+
+    await slide_routes.delete_session(session_id)
+
+    assert [str(item["_id"]) for item in db.slides.docs] == [other_session_id]
+    assert [item["content"] for item in db.chat_messages.docs] == ["Keep me"]
+    assert [item["filename"] for item in db.rag_documents.docs] == ["keep.md"]
+    assert deleted_memory == [session_id]
+    assert deleted_vectors == [session_id]
 
 
 @pytest.mark.asyncio

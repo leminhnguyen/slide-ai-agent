@@ -33,6 +33,9 @@ export const slideApi = {
   update: (id: string, data: { title?: string; markdown?: string }) =>
     api.put<SlideSession>(`/slides/${id}`, data).then(r => r.data),
 
+  deleteSession: (id: string) =>
+    api.delete(`/slides/${id}`),
+
   exportUrl: (id: string, format: ExportFormat) =>
     `/api/slides/${id}/export?format=${format}`,
 
