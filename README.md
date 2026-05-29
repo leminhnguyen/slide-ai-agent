@@ -6,7 +6,8 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 ---
 
 ## Agent Architecture
-![alt text](be/assets/agent.png)
+
+![Agent Architecture](be/assets/agent.png)
 
 ---
 
