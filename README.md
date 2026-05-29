@@ -7,7 +7,76 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 
 ## Agent Architecture
 The agent uses a ReAct-inspired architecture with a single LLM for reasoning and tool use. The agent loop is triggered by user messages in the chat interface, and the agent can call tools for slide editing, RAG retrieval, web search, chart generation, and image generation. Agent actions are streamed back to the frontend for real-time UI updates.
-![Agent Architecture](be/assets/agent.png)
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "nodeSpacing": 36, "rankSpacing": 54}}}%%
+flowchart LR
+    A(["User Input"]) --> B["Chat API<br/>FastAPI Route"]
+    B --> C{"Tagged Docs?<br/>Input Processing"}
+    C -->|hint injected| D
+    C -->|no tags| D
+
+    D["LLM Think<br/>gpt-5.2 ReAct Loop"] --> E{"Tool call<br/>needed?"}
+    E -->|No| F["Streaming SSE"]
+    F --> G(["Final Answer to User"])
+    D -.->|on_chat_model_stream| G
+
+    E -->|Yes| H["Execute Tool<br/>11 Agent Tools"]
+
+    subgraph TOOLS[Agent Tools - 11 Tools]
+        direction TB
+        T1["Slide Structure<br/>get, update, add, delete, edit"]
+        T2["RAG<br/>search_documents"]
+        T3["Web Search<br/>search_web - gpt-5"]
+        T4["Code and Charts<br/>run_python_code"]
+        T5["Image Gen<br/>gpt-image-1"]
+    end
+
+    H --> T1
+    H --> T2
+    H --> T3
+    H --> T4
+    H --> T5
+    T1 --> I{"Slide-modifying<br/>tool?"}
+    T2 --> I
+    T3 --> I
+    T4 --> I
+    T5 --> I
+    I -->|No| D
+    I -->|Yes| J["slide_updated = true<br/>on_tool_end"]
+    J --> D
+
+    subgraph INFRA[External Services]
+        direction TB
+        L[("MongoDB<br/>Checkpoint")]
+        M[("MongoDB<br/>Slides DB")]
+        N[("Qdrant<br/>Vector Store")]
+        O["OpenAI API<br/>gpt-5.2 / gpt-5 / gpt-image-1"]
+    end
+
+    D -.->|thread_id checkpointing| L
+    H -.->|read/write slide data| M
+    H -.->|vector similarity search| N
+    D -.->|LLM inference| O
+
+    classDef userNode fill:#27ae60,stroke:#1e8449,color:#fff
+    classDef llmNode fill:#8e44ad,stroke:#6c3483,color:#fff
+    classDef toolNode fill:#e67e22,stroke:#ca6f1e,color:#fff
+    classDef apiNode fill:#2980b9,stroke:#1a5276,color:#fff
+    classDef infraNode fill:#16a085,stroke:#0e6655,color:#fff
+    classDef decisionNode fill:#d4ac0d,stroke:#b7950b,color:#fff
+    classDef flagNode fill:#cb4335,stroke:#a93226,color:#fff
+    classDef toolGroupNode fill:#1abc9c,stroke:#148f77,color:#fff
+
+    class A,G userNode
+    class D llmNode
+    class H toolNode
+    class B,F apiNode
+    class L,M,N,O infraNode
+    class C,E,I decisionNode
+    class J flagNode
+    class T1,T2,T3,T4,T5 toolGroupNode
+```
 
 ---
 
