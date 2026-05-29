@@ -6,7 +6,7 @@ AI-powered presentation builder with a conversational agent, live Marp preview, 
 ---
 
 ## Agent Architecture
-
+The agent uses a ReAct-inspired architecture with a single LLM for reasoning and tool use. The agent loop is triggered by user messages in the chat interface, and the agent can call tools for slide editing, RAG retrieval, web search, chart generation, and image generation. Agent actions are streamed back to the frontend for real-time UI updates.
 ![Agent Architecture](be/assets/agent.png)
 
 ---
