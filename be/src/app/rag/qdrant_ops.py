@@ -17,7 +17,7 @@ from qdrant_client.models import (
 from src.libs.config import get_settings
 from src.libs.qdrant import get_qdrant
 
-VECTOR_SIZE = 1536  # text-embedding-3-small
+VECTOR_SIZE = 3072  # text-embedding-3-large
 
 
 def _collection_name(session_id: str) -> str:
